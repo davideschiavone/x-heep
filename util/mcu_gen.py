@@ -469,17 +469,41 @@ def main():
 
     def extract_peripherals(peripherals):
         result = {}
+        num_peripherals = 0
         for name, info in peripherals.items():
+
             if isinstance(info, dict):
+
+                try:
+                    num_instance = info['num_instances']
+                except KeyError:
+                    num_instance = 1
+
                 new_info = {}
-                for k, v in info.items():
-                    if k not in ("is_included"):
-                        new_info[k] = string2int(v)
-                    else:
-                        new_info[k] = v
+                new_info['num_instances'] = num_instance
+                new_info['instances'] = {}
+
+                for instance in range(num_instance):
+                    new_info_instance = {}
+                    for k, v in info.items():
+                        if k not in ("num_instances"):
+                            if k not in ("is_included"):
+                                new_info_instance[k] = string2int(v.split(",")[instance])
+                            else:
+                                new_info_instance[k] = v.split(",")[instance]
+    
+                        new_info['instances'][str(instance)] = new_info_instance
+                    new_info['instances'][str(instance)]['index'] = num_peripherals
+                    num_peripherals+=1
+
                 result[name] = new_info
 
-        return result
+        for peripheral, value in result.items():
+            print(peripheral)
+            for inst, addr in value['instances'].items():
+                print(addr)
+
+        return result, num_peripherals
 
 
     def discard_path(peripherals):
@@ -501,8 +525,7 @@ def main():
                         len_ep += 1
         return len_ep
 
-    ao_peripherals = extract_peripherals(discard_path(obj['ao_peripherals']))
-    ao_peripherals_count = len(ao_peripherals)
+    ao_peripherals, ao_peripherals_count = extract_peripherals(discard_path(obj['ao_peripherals']))
 
 
     peripheral_start_address = string2int(obj['peripherals']['address'])
@@ -510,8 +533,7 @@ def main():
         exit("peripheral start address must be greater than 0x10000")
 
     peripheral_size_address = string2int(obj['peripherals']['length'])
-    peripherals = extract_peripherals(discard_path(obj['peripherals']))
-    peripherals_count = len(peripherals)
+    peripherals, peripherals_count = extract_peripherals(discard_path(obj['peripherals']))
 
     ext_slave_start_address = string2int(obj['ext_slaves']['address'])
     ext_slave_size_address = string2int(obj['ext_slaves']['length'])

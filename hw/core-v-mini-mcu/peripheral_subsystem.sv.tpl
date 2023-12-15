@@ -49,6 +49,18 @@ module peripheral_subsystem
     output logic cio_sda_o,
     output logic cio_sda_en_o,
 
+
+    // OpenTitan SPI interface to external spi slaves
+    output logic                               spi_sck_o,
+    output logic                               spi_sck_en_o,
+    output logic [spi_host_reg_pkg::NumCS-1:0] spi_csb_o,
+    output logic [spi_host_reg_pkg::NumCS-1:0] spi_csb_en_o,
+    output logic [                        3:0] spi_sd_o,
+    output logic [                        3:0] spi_sd_en_o,
+    input  logic [                        3:0] spi_sd_i,
+    output logic                               spi_intr_event_o,
+    output logic                               spi_flash_intr_event_o,
+
     // SPI Host
     output logic                               spi2_sck_o,
     output logic                               spi2_sck_en_o,
@@ -72,7 +84,11 @@ module peripheral_subsystem
     output logic i2s_sd_o,
     output logic i2s_sd_oe_o,
     input  logic i2s_sd_i,
-    output logic i2s_rx_valid_o,
+
+    // DMA slots
+    output logic dma_slot_spi_rx_valid_o,
+    output logic dma_slot_spi_tx_ready_o,
+    output logic dma_i2s_rx_valid_o,
 
     // PDM2PCM Interface
     output logic pdm2pcm_clk_o,
@@ -444,17 +460,47 @@ module peripheral_subsystem
 % endif
 % endfor
 
-% for peripheral in peripherals.items():
-% if peripheral[0] in ("spi2"):
-% if peripheral[1]['is_included'] in ("yes"):
+
+
   spi_host #(
       .reg_req_t(reg_pkg::reg_req_t),
       .reg_rsp_t(reg_pkg::reg_rsp_t)
-  ) spi2_host (
+  ) spi_host_i (
+      .clk_i,
+      .rst_ni,
+      .reg_req_i(ao_peripheral_slv_req[core_v_mini_mcu_pkg::SPI_HOST_IDX]),
+      .reg_rsp_o(ao_peripheral_slv_rsp[core_v_mini_mcu_pkg::SPI_HOST_IDX]),
+      .alert_rx_i(),
+      .alert_tx_o(),
+      .passthrough_i(spi_device_pkg::PASSTHROUGH_REQ_DEFAULT),
+      .passthrough_o(),
+      .cio_sck_o(spi_sck_o),
+      .cio_sck_en_o(spi_sck_en_o),
+      .cio_csb_o(spi_csb_o),
+      .cio_csb_en_o(spi_csb_en_o),
+      .cio_sd_o(spi_sd_o),
+      .cio_sd_en_o(spi_sd_en_o),
+      .cio_sd_i(spi_sd_i),
+      .rx_valid_o(dma_slot_spi_rx_valid_o),
+      .tx_ready_o(dma_slot_spi_tx_ready_o),
+      .intr_error_o(),
+      .intr_spi_event_o(spi_intr_event_o)
+  );
+
+
+% for peripheral in peripherals.items():
+% if peripheral[0] in ("spi_host"):
+% for instance in range(int(peripheral[1]['num_instances'])):
+${peripheral[1]['is_included']}
+% if peripheral[1]['is_included'][i] in ("yes"):
+  spi_host #(
+      .reg_req_t(reg_pkg::reg_req_t),
+      .reg_rsp_t(reg_pkg::reg_rsp_t)
+  ) spi_host_${str(i)} (
       .clk_i(clk_cg),
       .rst_ni,
-      .reg_req_i(peripheral_slv_req[core_v_mini_mcu_pkg::SPI2_IDX]),
-      .reg_rsp_o(peripheral_slv_rsp[core_v_mini_mcu_pkg::SPI2_IDX]),
+      .reg_req_i(peripheral_slv_req[core_v_mini_mcu_pkg::SPI_${str(i)}_IDX]),
+      .reg_rsp_o(peripheral_slv_rsp[core_v_mini_mcu_pkg::SPI_${str(i)}_IDX]),
       .alert_rx_i(),
       .alert_tx_o(),
       .passthrough_i(spi_device_pkg::PASSTHROUGH_REQ_DEFAULT),
@@ -529,7 +575,7 @@ module peripheral_subsystem
       .i2s_sd_oe_o(i2s_sd_oe_o),
       .i2s_sd_i(i2s_sd_i),
       .intr_i2s_event_o(i2s_intr_event),
-      .i2s_rx_valid_o(i2s_rx_valid_o)
+      .i2s_rx_valid_o(dma_i2s_rx_valid_o)
   );
 % else:
   assign peripheral_slv_rsp[core_v_mini_mcu_pkg::I2S_IDX] = '0;
@@ -541,7 +587,7 @@ module peripheral_subsystem
   assign i2s_sd_oe_o      = 1'b0;
   assign i2s_sd_o         = 1'b0;
   assign i2s_intr_event   = 1'b0;
-  assign i2s_rx_valid_o   = 1'b0;
+  assign dma_i2s_rx_valid_o = 1'b0;
 % endif
 % endif
 % endfor

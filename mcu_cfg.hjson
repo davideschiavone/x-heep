@@ -56,11 +56,6 @@
             offset:  0x00028000,
             length:  0x00008000,
         },
-        spi_host: {
-            offset:  0x00030000,
-            length:  0x00010000,
-            path:    "./hw/vendor/lowrisc_opentitan_spi_host/data/spi_host.hjson"
-        },
         power_manager: {
             offset:  0x00040000,
             length:  0x00010000,
@@ -126,10 +121,12 @@
             is_included: "yes",
             path:    "./hw/vendor/lowrisc_opentitan/hw/ip/rv_timer/data/rv_timer.hjson"
         },
-        spi2: {
-            offset:  0x00050000,
-            length:  0x00010000,
-            is_included: "yes",
+        spi_host: {
+            offset:  0x00050000, 0x00051000,
+            length:  0x00001000, 0x00001000,
+            num_instances: 2,
+            is_included: yes, no,
+            path:    "./hw/vendor/lowrisc_opentitan_spi_host/data/spi_host.hjson"
         },
         pdm2pcm: {
             offset:  0x00060000,
