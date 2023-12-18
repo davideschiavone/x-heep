@@ -497,11 +497,18 @@ def main():
                     num_peripherals+=1
 
                 result[name] = new_info
+                if name in "rv_plic":
+                    print(result[name])
 
-        for peripheral, value in result.items():
-            print(peripheral)
-            for inst, addr in value['instances'].items():
-                print(addr)
+
+        for peripheral in result.items():
+            if peripheral[0] in ("rv_plic"):
+                print("Ciao amico")
+                print(peripheral[1])
+                for instance in range(int(peripheral[1]['num_instances'])):
+                    if peripheral[1]['instances']['0']['is_included'] in ("yes"):
+                        print("PLUTO")
+        
 
         return result, num_peripherals
 
