@@ -5,6 +5,8 @@
 #define WEIGHT5_ROW_ 128
 #define WEIGHT5_COL_ 8
 #define WEIGHT5_SIZE_ 1024
+#define INPUT_LAYER_5_SIZE_ 8
+#define OUTPUT_LAYER_5_SIZE_ 128
  int8_t __attribute__((section(".xheep_data_interleaved"))) weight5_w[] = {
 6,1,3,3,2,3,5,5,
 4,3,7,4,9,7,1,9,

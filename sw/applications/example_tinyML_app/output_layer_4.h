@@ -2,8 +2,6 @@
 #ifndef OUTPUT_LAYER_4_H_
 #define OUTPUT_LAYER_4_H_
 #include <stdint.h>
-#define INPUT_LAYER_4_SIZE_ 128
-#define OUTPUT_LAYER_4_SIZE_ 8
  int8_t __attribute__((section(".xheep_data_interleaved"))) output_layer_4[] = {
 -83,102,-106,-54,-69,-27,98,58,
 };

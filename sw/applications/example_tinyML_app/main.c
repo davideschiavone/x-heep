@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "x-heep.h"
+#include "timer_sdk.h"
 #include "dma_sdk.h"
 
 /* By default, printfs are activated for FPGA and disabled for simulation. */
@@ -184,29 +184,41 @@ int __attribute__ ((noinline)) copy_data(int8_t* src, int8_t * dst, uint32_t byt
     return 0;
 }
 
+#define NUM_LAYERS 10
+#define PRINT_CYCLES
 
 int main(int argc, char *argv[]) {
 
     uint8_t layer_id = 0;
-
     int8_t* input_ptr;
     int8_t* output_ptr;
     int8_t* temp;
     uint32_t num_tiles;
     
-    dma_sdk_init();
+    uint32_t cycles[NUM_LAYERS] = {0};
 
+    dma_sdk_init();
 
     //check that the accelerator memory (e.g.xheep_data_interleaved_acc) is big enough to accomodate the tiling
     CHECK_TILING_SIZE(WEIGHT_BUFFER_L1, INPUT_BUFFER_L1, OUTPUT_BUFFER_L1);
 
     //L = 0
 #ifdef COMPUTE_LAYER_0
+
+    timer_cycles_init();
+    timer_start();
+
     #if (TOTAL_TILING_SIZE(0) <= TOTAL_ACC_MEMORY)
 
-        input_ptr = input_signal;
-        output_ptr = output_layer_buffer0;
-        dense8to32(global_matrix_buffer, input_ptr, output_ptr, weight0_b, WEIGHT0_ROW_, 1, WEIGHT0_COL_,layer_id);
+        copy_data(input_signal, output_layer_buffer0_l1, INPUT_SIGNAL_SIZE_);
+
+        input_ptr = output_layer_buffer0_l1;
+        output_ptr = output_layer_buffer1_l1;
+
+        copy_data(&weight0_w[0], weight_buffer_l1, WEIGHT0_SIZE_);
+        dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight0_b, WEIGHT0_ROW_, 1, WEIGHT0_COL_,layer_id);
+
+        cycles[layer_id] = timer_stop();
 
         #ifdef CHECK_LAYER_0
             if (check_err(OUTPUT_LAYER_0_SIZE_, output_ptr, output_layer_0, layer_id)!=0)
@@ -231,6 +243,8 @@ int main(int argc, char *argv[]) {
                 dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, &output_ptr[i*TILING_ROWS_0], &weight0_b[i*TILING_ROWS_0], TILING_ROWS_0, 1, WEIGHT0_COL_,layer_id);
             }
 
+            cycles[layer_id] = timer_stop();
+
             #ifdef CHECK_LAYER_0
                 if (check_err(OUTPUT_LAYER_0_SIZE_, output_ptr, output_layer_0, layer_id)!=0)
                     return EXIT_FAILURE;
@@ -248,11 +262,16 @@ int main(int argc, char *argv[]) {
 
 #ifdef COMPUTE_LAYER_1
 
+    timer_cycles_init();
+    timer_start();
+
     layer_id++; //L = 1
 #if (TOTAL_TILING_SIZE(1) <= TOTAL_ACC_MEMORY)
 
     copy_data(&weight1_w[0], weight_buffer_l1, WEIGHT1_SIZE_);
     dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight1_b, WEIGHT1_ROW_, 1, WEIGHT1_COL_,layer_id);
+
+    cycles[layer_id] = timer_stop();
 
 #else
     #error("Tiling is not implemented for layer 1")
@@ -270,11 +289,16 @@ int main(int argc, char *argv[]) {
 
 #ifdef COMPUTE_LAYER_2
 
+    timer_cycles_init();
+    timer_start();
+
     layer_id++; //L = 2
 #if (TOTAL_TILING_SIZE(2) <= TOTAL_ACC_MEMORY)
 
     copy_data(&weight2_w[0], weight_buffer_l1, WEIGHT2_SIZE_);
     dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight2_b, WEIGHT2_ROW_, 1, WEIGHT2_COL_,layer_id);
+
+    cycles[layer_id] = timer_stop();
 
 #else
     #error("Tiling is not implemented for layer 2")
@@ -290,12 +314,17 @@ int main(int argc, char *argv[]) {
 
 #ifdef COMPUTE_LAYER_3
 
+    timer_cycles_init();
+    timer_start();
+
     layer_id++; //L = 3
 
 #if (TOTAL_TILING_SIZE(3) <= TOTAL_ACC_MEMORY)
 
     copy_data(&weight3_w[0], weight_buffer_l1, WEIGHT3_SIZE_);
     dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight3_b, WEIGHT3_ROW_, 1, WEIGHT3_COL_,layer_id);
+
+    cycles[layer_id] = timer_stop();
 
 #else
     #error("Tiling is not implemented for layer 3")
@@ -311,12 +340,17 @@ int main(int argc, char *argv[]) {
 
 #ifdef COMPUTE_LAYER_4
 
+    timer_cycles_init();
+    timer_start();
+
     layer_id++; //L = 4
 
 #if (TOTAL_TILING_SIZE(4) <= TOTAL_ACC_MEMORY)
 
     copy_data(&weight4_w[0], weight_buffer_l1, WEIGHT4_SIZE_);
     dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight4_b, WEIGHT4_ROW_, 1, WEIGHT4_COL_,layer_id);
+
+    cycles[layer_id] = timer_stop();
 
 #else
     #error("Tiling is not implemented for layer 4")
@@ -332,12 +366,17 @@ int main(int argc, char *argv[]) {
 
 #ifdef COMPUTE_LAYER_5
 
+    timer_cycles_init();
+    timer_start();
+
     layer_id++; //L = 5
 
 #if (TOTAL_TILING_SIZE(5) <= TOTAL_ACC_MEMORY)
 
     copy_data(&weight5_w[0], weight_buffer_l1, WEIGHT5_SIZE_);
     dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight5_b, WEIGHT5_ROW_, 1, WEIGHT5_COL_,layer_id);
+
+    cycles[layer_id] = timer_stop();
 
 #else
     #error("Tiling is not implemented for layer 5")
@@ -352,12 +391,18 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef COMPUTE_LAYER_6
+
+    timer_cycles_init();
+    timer_start();
+
     layer_id++; //L = 6
 
 #if (TOTAL_TILING_SIZE(6) <= TOTAL_ACC_MEMORY)
 
     copy_data(&weight6_w[0], weight_buffer_l1, WEIGHT6_SIZE_);
     dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight6_b, WEIGHT6_ROW_, 1, WEIGHT6_COL_,layer_id);
+
+    cycles[layer_id] = timer_stop();
 
 #else
     #error("Tiling is not implemented for layer 6")
@@ -372,12 +417,18 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef COMPUTE_LAYER_7
+
+    timer_cycles_init();
+    timer_start();
+
     layer_id++; //L = 7
 
 #if (TOTAL_TILING_SIZE(7) <= TOTAL_ACC_MEMORY)
 
     copy_data(&weight7_w[0], weight_buffer_l1, WEIGHT7_SIZE_);
     dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight7_b, WEIGHT7_ROW_, 1, WEIGHT7_COL_,layer_id);
+
+    cycles[layer_id] = timer_stop();
 
 #else
     #error("Tiling is not implemented for layer 7")
@@ -392,12 +443,18 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef COMPUTE_LAYER_8
+
+    timer_cycles_init();
+    timer_start();
+
     layer_id++; //L = 8
 
 #if (TOTAL_TILING_SIZE(8) <= TOTAL_ACC_MEMORY)
 
     copy_data(&weight8_w[0], weight_buffer_l1, WEIGHT8_SIZE_);
     dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight8_b, WEIGHT8_ROW_, 1, WEIGHT8_COL_,layer_id);
+
+    cycles[layer_id] = timer_stop();
 
 #else
     #error("Tiling is not implemented for layer 8")
@@ -412,12 +469,18 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef COMPUTE_LAYER_9
+
+    timer_cycles_init();
+    timer_start();
+
     layer_id++; //L = 9
 
 #if (TOTAL_TILING_SIZE(9) <= TOTAL_ACC_MEMORY)
 
     copy_data(&weight9_w[0], weight_buffer_l1, WEIGHT9_SIZE_);
-    dense9to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight9_b, WEIGHT9_ROW_, 1, WEIGHT9_COL_,layer_id);
+    dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight9_b, WEIGHT9_ROW_, 1, WEIGHT9_COL_,layer_id);
+
+    cycles[layer_id] = timer_stop();
 
 #ifdef CHECK_LAYER_9
     if (check_err(OUTPUT_LAYER_9_SIZE_, output_ptr, output_layer_9, layer_id)!=0)
@@ -438,6 +501,8 @@ int main(int argc, char *argv[]) {
             dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, &output_ptr[i*TILING_ROWS_9], &weight9_b[i*TILING_ROWS_9], TILING_ROWS_9, 1, WEIGHT9_COL_,layer_id);
         }
 
+        cycles[layer_id] = timer_stop();
+
         #ifdef CHECK_LAYER_9
             if (check_err(OUTPUT_LAYER_9_SIZE_, output_ptr, output_layer_9, layer_id)!=0)
                 return EXIT_FAILURE;
@@ -447,9 +512,15 @@ int main(int argc, char *argv[]) {
         #error("Tiling is required for this example")
     #endif
 
+#endif
+#endif
 
+#ifdef PRINT_CYCLES
+    for(int i = 0; i < NUM_LAYERS; i++) {
+        printf("L%d cc: %d\n", i, cycles[i]);
+    }
 #endif
-#endif
+
     return EXIT_SUCCESS;
 
 }
