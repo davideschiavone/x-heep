@@ -42,22 +42,22 @@
 #define COMPUTE_LAYER_2
 #define COMPUTE_LAYER_3
 #define COMPUTE_LAYER_4
-// #define COMPUTE_LAYER_5
-// #define COMPUTE_LAYER_6
-// #define COMPUTE_LAYER_7
-// #define COMPUTE_LAYER_8
-// #define COMPUTE_LAYER_9
+#define COMPUTE_LAYER_5
+#define COMPUTE_LAYER_6
+#define COMPUTE_LAYER_7
+#define COMPUTE_LAYER_8
+#define COMPUTE_LAYER_9
 
 //#define CHECK_LAYER_0
 //#define CHECK_LAYER_1
 //#define CHECK_LAYER_2
 //#define CHECK_LAYER_3
-#define CHECK_LAYER_4
+//#define CHECK_LAYER_4
 //#define CHECK_LAYER_5
 //#define CHECK_LAYER_6
 //#define CHECK_LAYER_7
 //#define CHECK_LAYER_8
-//#define CHECK_LAYER_9
+#define CHECK_LAYER_9
 
 #include "weight0.h"
 #ifdef CHECK_LAYER_0
@@ -109,7 +109,8 @@
 #include "output_layer_9.h"
 #endif
 
-#define TILING_ROWS 32
+#define TILING_ROWS_0 32
+#define TILING_ROWS_9 128
 #define DO_TILING 1
 
 int32_t __attribute__((section(".xheep_data_interleaved"))) global_matrix_buffer[WEIGHT0_ROW_] = {0};
@@ -124,11 +125,14 @@ int8_t __attribute__((section(".xheep_data_interleaved"))) output_layer_buffer1[
 // in anomaly detection is the biggest and is 128x640
 // plus the input (INPUT_SIZE_SIGNAL)
 // and the output (WEIGHT0_ROW_)
+#define WEIGHT_BUFFER_L1 (TILING_ROWS_0*INPUT_SIGNAL_SIZE_)
+#define INPUT_BUFFER_L1 (INPUT_SIGNAL_SIZE_)
+#define OUTPUT_BUFFER_L1 (INPUT_SIGNAL_SIZE_) //neded for the last layer where autoencoder output expands
 
-int8_t __attribute__((section(".xheep_data_interleaved_acc"))) weight_buffer_l1[TILING_ROWS*INPUT_SIGNAL_SIZE_] = {0};
-int8_t __attribute__((section(".xheep_data_interleaved_acc"))) output_layer_buffer0_l1[INPUT_SIGNAL_SIZE_] = {0};
-int32_t __attribute__((section(".xheep_data_interleaved_acc"))) global_matrix_buffer_l1[WEIGHT0_ROW_] = {0};
-int8_t __attribute__((section(".xheep_data_interleaved_acc"))) output_layer_buffer1_l1[WEIGHT0_ROW_] = {0};
+int8_t __attribute__((section(".xheep_data_interleaved_acc"))) weight_buffer_l1[WEIGHT_BUFFER_L1] = {0};
+int8_t __attribute__((section(".xheep_data_interleaved_acc"))) output_layer_buffer0_l1[INPUT_BUFFER_L1] = {0};
+int32_t __attribute__((section(".xheep_data_interleaved_acc"))) global_matrix_buffer_l1[OUTPUT_BUFFER_L1] = {0};
+int8_t __attribute__((section(".xheep_data_interleaved_acc"))) output_layer_buffer1_l1[OUTPUT_BUFFER_L1] = {0};
 //TOD: add bias buffer
 
 #define SWAP(x, y) \
@@ -143,7 +147,7 @@ int8_t __attribute__((section(".xheep_data_interleaved_acc"))) output_layer_buff
     (DEF_CONCAT(WEIGHT, x##_SIZE_) + DEF_CONCAT(INPUT_LAYER_, x##_SIZE_) + DEF_CONCAT(OUTPUT_LAYER_, x##_SIZE_) + DEF_CONCAT(OUTPUT_LAYER_, x##_SIZE_) * 4)
 
 #define CHECK_TILING_SIZE(WEIGHT_TILE_SIZE, INPUT_TILE_SIZE_, OUTPUT_TILE_SIZE) \
-    static_assert( WEIGHT_TILE_SIZE + INPUT_TILE_SIZE_ + OUTPUT_TILE_SIZE + OUTPUT_TILE_SIZE/4 <= TOTAL_ACC_MEMORY, \
+    static_assert( WEIGHT_TILE_SIZE + INPUT_TILE_SIZE_ + OUTPUT_TILE_SIZE + OUTPUT_TILE_SIZE*4 <= TOTAL_ACC_MEMORY, \
                   "The tiling size is too big for the accelerator memory")
 
 
@@ -158,7 +162,7 @@ void __attribute__ ((noinline)) dense8to32(int32_t* tmp_matrix32, int8_t *  A, i
             for(int k = 0; k < C1; k++) {
                 acc+= A[i*C1+k] * B[k*C2+j];
             }
-            tmp_matrix32[i * C2 + j] = bias[i * C2 + j] + acc + (layer_id == 5);
+            tmp_matrix32[i * C2 + j] = bias[i * C2 + j] + acc;
             C[i * C2 + j] = (int8_t) (tmp_matrix32[i * C2 + j]);
         }
     }
@@ -188,11 +192,13 @@ int main(int argc, char *argv[]) {
     int8_t* input_ptr;
     int8_t* output_ptr;
     int8_t* temp;
-
+    uint32_t num_tiles;
+    
     dma_sdk_init();
 
 
-    CHECK_TILING_SIZE(TILING_ROWS*INPUT_SIGNAL_SIZE_, INPUT_SIGNAL_SIZE_, WEIGHT0_ROW_*4);
+    //check that the accelerator memory (e.g.xheep_data_interleaved_acc) is big enough to accomodate the tiling
+    CHECK_TILING_SIZE(WEIGHT_BUFFER_L1, INPUT_BUFFER_L1, OUTPUT_BUFFER_L1);
 
     //L = 0
 #ifdef COMPUTE_LAYER_0
@@ -208,13 +214,12 @@ int main(int argc, char *argv[]) {
         #endif
 
         //for next layer
-        input_ptr = output_layer_buffer0;
-        output_ptr = output_layer_buffer1;
+        SWAP(input_ptr, output_ptr);
 
     #else
         #ifdef DO_TILING
 
-            uint32_t num_tiles = WEIGHT0_ROW_ / TILING_ROWS;
+            num_tiles = WEIGHT0_ROW_ / TILING_ROWS_0;
 
             copy_data(input_signal, output_layer_buffer0_l1, INPUT_SIGNAL_SIZE_);
 
@@ -222,8 +227,8 @@ int main(int argc, char *argv[]) {
             output_ptr = output_layer_buffer1_l1;
 
             for(int i=0; i<num_tiles;i++) {
-                copy_data(&weight0_w[i*WEIGHT0_COL_*TILING_ROWS], weight_buffer_l1, TILING_ROWS*INPUT_SIGNAL_SIZE_);
-                dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, &output_ptr[i*TILING_ROWS], &weight0_b[i*TILING_ROWS], TILING_ROWS, 1, WEIGHT0_COL_,layer_id);
+                copy_data(&weight0_w[i*WEIGHT0_COL_*TILING_ROWS_0], weight_buffer_l1, TILING_ROWS_0*INPUT_SIGNAL_SIZE_);
+                dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, &output_ptr[i*TILING_ROWS_0], &weight0_b[i*TILING_ROWS_0], TILING_ROWS_0, 1, WEIGHT0_COL_,layer_id);
             }
 
             #ifdef CHECK_LAYER_0
@@ -293,7 +298,7 @@ int main(int argc, char *argv[]) {
     dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight3_b, WEIGHT3_ROW_, 1, WEIGHT3_COL_,layer_id);
 
 #else
-    #error("Tiling is not implemented for layer 2")
+    #error("Tiling is not implemented for layer 3")
 #endif
 
 #ifdef CHECK_LAYER_3
@@ -314,7 +319,7 @@ int main(int argc, char *argv[]) {
     dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight4_b, WEIGHT4_ROW_, 1, WEIGHT4_COL_,layer_id);
 
 #else
-    #error("Tiling is not implemented for layer 2")
+    #error("Tiling is not implemented for layer 4")
 #endif
 
 #ifdef CHECK_LAYER_4
@@ -329,66 +334,120 @@ int main(int argc, char *argv[]) {
 
     layer_id++; //L = 5
 
-    SWAP(input_ptr, output_ptr)
+#if (TOTAL_TILING_SIZE(5) <= TOTAL_ACC_MEMORY)
 
-    dense8to32(global_matrix_buffer, weight5_w, input_ptr, output_ptr, weight5_b, WEIGHT5_ROW_, 1, WEIGHT5_COL_,layer_id);
+    copy_data(&weight5_w[0], weight_buffer_l1, WEIGHT5_SIZE_);
+    dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight5_b, WEIGHT5_ROW_, 1, WEIGHT5_COL_,layer_id);
+
+#else
+    #error("Tiling is not implemented for layer 5")
+#endif
 
 #ifdef CHECK_LAYER_5
     if (check_err(OUTPUT_LAYER_5_SIZE_, output_ptr, output_layer_5, layer_id)!=0)
         return EXIT_FAILURE;
 #endif
-
+    //for next layer
+    SWAP(input_ptr, output_ptr);
 #endif
 
 #ifdef COMPUTE_LAYER_6
     layer_id++; //L = 6
 
-    SWAP(input_ptr, output_ptr)
+#if (TOTAL_TILING_SIZE(6) <= TOTAL_ACC_MEMORY)
 
-    dense8to32(global_matrix_buffer, weight6_w, input_ptr, output_ptr, weight6_b, WEIGHT6_ROW_, 1, WEIGHT6_COL_,layer_id);
+    copy_data(&weight6_w[0], weight_buffer_l1, WEIGHT6_SIZE_);
+    dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight6_b, WEIGHT6_ROW_, 1, WEIGHT6_COL_,layer_id);
+
+#else
+    #error("Tiling is not implemented for layer 6")
+#endif
 
 #ifdef CHECK_LAYER_6
     if (check_err(OUTPUT_LAYER_6_SIZE_, output_ptr, output_layer_6, layer_id)!=0)
         return EXIT_FAILURE;
 #endif
+    //for next layer
+    SWAP(input_ptr, output_ptr);
 #endif
 
 #ifdef COMPUTE_LAYER_7
     layer_id++; //L = 7
 
-    SWAP(input_ptr, output_ptr)
+#if (TOTAL_TILING_SIZE(7) <= TOTAL_ACC_MEMORY)
 
-    dense8to32(global_matrix_buffer, weight7_w, input_ptr, output_ptr, weight7_b, WEIGHT7_ROW_, 1, WEIGHT7_COL_,layer_id);
+    copy_data(&weight7_w[0], weight_buffer_l1, WEIGHT7_SIZE_);
+    dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight7_b, WEIGHT7_ROW_, 1, WEIGHT7_COL_,layer_id);
+
+#else
+    #error("Tiling is not implemented for layer 7")
+#endif
 
 #ifdef CHECK_LAYER_7
     if (check_err(OUTPUT_LAYER_7_SIZE_, output_ptr, output_layer_7, layer_id)!=0)
         return EXIT_FAILURE;
 #endif
+    //for next layer
+    SWAP(input_ptr, output_ptr);
 #endif
 
 #ifdef COMPUTE_LAYER_8
     layer_id++; //L = 8
 
-    SWAP(input_ptr, output_ptr)
+#if (TOTAL_TILING_SIZE(8) <= TOTAL_ACC_MEMORY)
 
-    dense8to32(global_matrix_buffer, weight8_w, input_ptr, output_ptr, weight8_b, WEIGHT8_ROW_, 1, WEIGHT8_COL_,layer_id);
+    copy_data(&weight8_w[0], weight_buffer_l1, WEIGHT8_SIZE_);
+    dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight8_b, WEIGHT8_ROW_, 1, WEIGHT8_COL_,layer_id);
+
+#else
+    #error("Tiling is not implemented for layer 8")
+#endif
 
 #ifdef CHECK_LAYER_8
     if (check_err(OUTPUT_LAYER_8_SIZE_, output_ptr, output_layer_8, layer_id)!=0)
         return EXIT_FAILURE;
 #endif
+    //for next layer
+    SWAP(input_ptr, output_ptr);
 #endif
 
 #ifdef COMPUTE_LAYER_9
     layer_id++; //L = 9
 
-    SWAP(input_ptr, output_ptr)
+#if (TOTAL_TILING_SIZE(9) <= TOTAL_ACC_MEMORY)
 
-    dense8to32(global_matrix_buffer, weight9_w, input_ptr, output_ptr, weight9_b, WEIGHT9_ROW_, 1, WEIGHT9_COL_,layer_id);
+    copy_data(&weight9_w[0], weight_buffer_l1, WEIGHT9_SIZE_);
+    dense9to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, output_ptr, weight9_b, WEIGHT9_ROW_, 1, WEIGHT9_COL_,layer_id);
 
 #ifdef CHECK_LAYER_9
     if (check_err(OUTPUT_LAYER_9_SIZE_, output_ptr, output_layer_9, layer_id)!=0)
         return EXIT_FAILURE;
+#endif
+
+#else
+
+    #ifdef DO_TILING
+
+        num_tiles = WEIGHT9_ROW_ / TILING_ROWS_9;
+
+        static_assert( TILING_ROWS_9*INPUT_LAYER_9_SIZE_ <= WEIGHT_BUFFER_L1, \
+        "The tiling size for layer 9 is too big for the weight buffer");
+
+        for(int i=0; i<num_tiles;i++) {
+            copy_data(&weight9_w[i*WEIGHT9_COL_*TILING_ROWS_9], weight_buffer_l1, TILING_ROWS_9*INPUT_LAYER_9_SIZE_);
+            dense8to32(global_matrix_buffer_l1, weight_buffer_l1, input_ptr, &output_ptr[i*TILING_ROWS_9], &weight9_b[i*TILING_ROWS_9], TILING_ROWS_9, 1, WEIGHT9_COL_,layer_id);
+        }
+
+        #ifdef CHECK_LAYER_9
+            if (check_err(OUTPUT_LAYER_9_SIZE_, output_ptr, output_layer_9, layer_id)!=0)
+                return EXIT_FAILURE;
+        #endif
+
+    #else
+        #error("Tiling is required for this example")
+    #endif
+
+
 #endif
 #endif
     return EXIT_SUCCESS;
