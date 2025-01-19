@@ -113,6 +113,13 @@
 #define TILING_ROWS_9 128
 #define DO_TILING 1
 
+#ifdef OPENHW_GROUP_COMPILER
+typedef int8_t  v4qi __attribute__ ((vector_size (4)));
+#define dense8to32 dense8to32_xpulp
+#else
+#define dense8to32 dense8to32_generic
+#endif
+
 int32_t __attribute__((section(".xheep_data_interleaved"))) global_matrix_buffer[WEIGHT0_ROW_] = {0};
 int8_t __attribute__((section(".xheep_data_interleaved"))) output_layer_buffer0[WEIGHT0_ROW_] = {0};
 int8_t __attribute__((section(".xheep_data_interleaved"))) output_layer_buffer1[WEIGHT0_ROW_] = {0};
@@ -151,23 +158,51 @@ int8_t __attribute__((section(".xheep_data_interleaved_acc"))) output_layer_buff
                   "The tiling size is too big for the accelerator memory")
 
 
-
-
-void __attribute__ ((noinline)) dense8to32(int32_t* tmp_matrix32, int8_t *  A, int8_t *  B, int8_t *  C, int32_t* bias, int R1, int C2, int C1, uint8_t layer_id)
+void __attribute__ ((noinline)) dense8to32_generic(int32_t* tmp_matrix32, int8_t *  A, int8_t *  B, int8_t *  C, int32_t* bias, int R1, int C2, int C1, uint8_t layer_id)
 {
 
     for(int i = 0; i < R1; i++) {
-        for(int j = 0; j < C2; j++) {
+//        for(int j = 0; j < C2; j++) { C2 is always 1
             int32_t acc = 0;
-            for(int k = 0; k < C1; k++) {
+            int j = 0;
+            for(int k = 0; k < C1; k+=4) {
                 acc+= A[i*C1+k] * B[k*C2+j];
             }
             tmp_matrix32[i * C2 + j] = bias[i * C2 + j] + acc;
             C[i * C2 + j] = (int8_t) (tmp_matrix32[i * C2 + j]);
-        }
+//        }
     }
 
 }
+
+#ifdef OPENHW_GROUP_COMPILER
+void __attribute__ ((noinline)) dense8to32_xpulp(int32_t* tmp_matrix32, int8_t *  A, int8_t *  B, int8_t *  C, int32_t* bias, int R1, int C2, int C1, uint8_t layer_id)
+{
+
+    v4qi* av;
+    v4qi* bv;
+
+    for(int i = 0; i < R1; i++) {
+//        for(int j = 0; j < C2; j++) { C2 is always 1
+            int32_t acc = 0;
+            av = (v4qi *) &A[i*C1];
+            bv = (v4qi *) &B[0];
+            int j = 0;
+            for(int k = 0; k < C1; k+=4) {
+
+                v4qi a0 = *av;
+                v4qi b0 = *bv;
+                acc =  __builtin_riscv_cv_simd_sdotsp_b((int32_t)a0, (int32_t)b0, acc);
+                av++; bv++;
+                //acc+= A[i*C1+k] * B[k*C2+j];
+            }
+            tmp_matrix32[i * C2 + j] = bias[i * C2 + j] + acc;
+            C[i * C2 + j] = (int8_t) (tmp_matrix32[i * C2 + j]);
+//        }
+    }
+
+}
+#endif
 
 int check_err(uint32_t output_layer_size, int8_t * act, int8_t * exp, uint8_t layer_id) {
     for(int i = 0; i < output_layer_size; i++){
