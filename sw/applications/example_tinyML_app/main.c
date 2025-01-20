@@ -165,7 +165,7 @@ void __attribute__ ((noinline)) dense8to32_generic(int32_t* tmp_matrix32, int8_t
 //        for(int j = 0; j < C2; j++) { C2 is always 1
             int32_t acc = 0;
             int j = 0;
-            for(int k = 0; k < C1; k+=4) {
+            for(int k = 0; k < C1; k++) {
                 acc+= A[i*C1+k] * B[k*C2+j];
             }
             tmp_matrix32[i * C2 + j] = bias[i * C2 + j] + acc;
@@ -194,7 +194,6 @@ void __attribute__ ((noinline)) dense8to32_xpulp(int32_t* tmp_matrix32, int8_t *
                 v4qi b0 = *bv;
                 acc =  __builtin_riscv_cv_simd_sdotsp_b((int32_t)a0, (int32_t)b0, acc);
                 av++; bv++;
-                //acc+= A[i*C1+k] * B[k*C2+j];
             }
             tmp_matrix32[i * C2 + j] = bias[i * C2 + j] + acc;
             C[i * C2 + j] = (int8_t) (tmp_matrix32[i * C2 + j]);
