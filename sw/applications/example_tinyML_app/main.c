@@ -2,9 +2,8 @@
 // Solderpad Hardware License, Version 2.1, see LICENSE.md for details.
 // SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
 //
-// File: sw/applications/example_data_processing_from_flash/main.c
-// Author:  Francesco Poluzzi
-// Date: 29/07/2024
+// Author:  Davide Schiavone
+// Date: 20/01/2025
 
 /**
  * @file main.c
@@ -38,17 +37,17 @@
 #include "input_signal.h"
 
 #define COMPUTE_LAYER_0
-#define COMPUTE_LAYER_1
-#define COMPUTE_LAYER_2
-#define COMPUTE_LAYER_3
-#define COMPUTE_LAYER_4
-#define COMPUTE_LAYER_5
-#define COMPUTE_LAYER_6
-#define COMPUTE_LAYER_7
-#define COMPUTE_LAYER_8
-#define COMPUTE_LAYER_9
+//#define COMPUTE_LAYER_1
+//#define COMPUTE_LAYER_2
+//#define COMPUTE_LAYER_3
+//#define COMPUTE_LAYER_4
+//#define COMPUTE_LAYER_5
+//#define COMPUTE_LAYER_6
+//#define COMPUTE_LAYER_7
+//#define COMPUTE_LAYER_8
+//#define COMPUTE_LAYER_9
 
-//#define CHECK_LAYER_0
+#define CHECK_LAYER_0
 //#define CHECK_LAYER_1
 //#define CHECK_LAYER_2
 //#define CHECK_LAYER_3
@@ -57,7 +56,7 @@
 //#define CHECK_LAYER_6
 //#define CHECK_LAYER_7
 //#define CHECK_LAYER_8
-#define CHECK_LAYER_9
+//#define CHECK_LAYER_9
 
 #include "weight0.h"
 #ifdef CHECK_LAYER_0
@@ -114,10 +113,14 @@
 #define DO_TILING 1
 
 #ifdef OPENHW_GROUP_COMPILER
-typedef int8_t  v4qi __attribute__ ((vector_size (4)));
-#define dense8to32 dense8to32_xpulp
+    typedef int8_t  v4qi __attribute__ ((vector_size (4)));
+    #define dense8to32 dense8to32_xpulp
 #else
-#define dense8to32 dense8to32_generic
+    #ifdef USE_CAESAR
+        #define dense8to32 dense8to32_caesar
+    #else
+        #define dense8to32 dense8to32_generic
+    #endif
 #endif
 
 int32_t __attribute__((section(".xheep_data_interleaved"))) global_matrix_buffer[WEIGHT0_ROW_] = {0};
@@ -174,6 +177,31 @@ void __attribute__ ((noinline)) dense8to32_generic(int32_t* tmp_matrix32, int8_t
     }
 
 }
+
+#ifdef USE_CAESAR
+void __attribute__ ((noinline)) dense8to32_caesar(int32_t* tmp_matrix32, int8_t *  A, int8_t *  B, int8_t *  C, int32_t* bias, int R1, int C2, int C1, uint8_t layer_id)
+{
+
+    with cornelia
+        A*B (MxV) 8bit into 32bit
+
+    set imc to 0
+    32bit into 8bit
+
+    for(int i = 0; i < R1; i++) {
+//        for(int j = 0; j < C2; j++) { C2 is always 1
+            int32_t acc = 0;
+            int j = 0;
+            for(int k = 0; k < C1; k++) {
+                acc+= A[i*C1+k] * B[k*C2+j];
+            }
+            tmp_matrix32[i * C2 + j] = bias[i * C2 + j] + acc;
+            C[i * C2 + j] = (int8_t) (tmp_matrix32[i * C2 + j]);
+//        }
+    }
+
+}
+#endif
 
 #ifdef OPENHW_GROUP_COMPILER
 void __attribute__ ((noinline)) dense8to32_xpulp(int32_t* tmp_matrix32, int8_t *  A, int8_t *  B, int8_t *  C, int32_t* bias, int R1, int C2, int C1, uint8_t layer_id)
@@ -267,10 +295,14 @@ int main(int argc, char *argv[]) {
 
             num_tiles = WEIGHT0_ROW_ / TILING_ROWS_0;
 
+#ifndef USE_CAESAR
             copy_data(input_signal, output_layer_buffer0_l1, INPUT_SIGNAL_SIZE_);
-
             input_ptr = output_layer_buffer0_l1;
             output_ptr = output_layer_buffer1_l1;
+#else
+            input_ptr = 4kB of the second bank;
+            output_ptr = address of input_ptr + INPUT SIZE;
+#endif
 
             for(int i=0; i<num_tiles;i++) {
                 copy_data(&weight0_w[i*WEIGHT0_COL_*TILING_ROWS_0], weight_buffer_l1, TILING_ROWS_0*INPUT_SIGNAL_SIZE_);
