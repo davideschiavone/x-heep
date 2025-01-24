@@ -163,45 +163,15 @@ int8_t __attribute__((section(".xheep_data_interleaved_acc"))) output_layer_buff
 
 void __attribute__ ((noinline)) dense8to32_generic(int32_t* tmp_matrix32, int8_t *  A, int8_t *  B, int8_t *  C, int32_t* bias, int R1, int C2, int C1, uint8_t layer_id)
 {
-
     for(int i = 0; i < R1; i++) {
-//        for(int j = 0; j < C2; j++) { C2 is always 1
-            int32_t acc = 0;
-            int j = 0;
-            for(int k = 0; k < C1; k++) {
-                acc+= A[i*C1+k] * B[k*C2+j];
-            }
-            tmp_matrix32[i * C2 + j] = bias[i * C2 + j] + acc;
-            C[i * C2 + j] = (int8_t) (tmp_matrix32[i * C2 + j]);
-//        }
+        int32_t acc = bias[i];
+        for(int k = 0; k < C1; k++) {
+            acc+= A[i*C1+k] * B[k*C2+j];
+        }
+        C[i] = (int8_t) (acc);
     }
-
 }
 
-#ifdef USE_CAESAR
-void __attribute__ ((noinline)) dense8to32_caesar(int32_t* tmp_matrix32, int8_t *  A, int8_t *  B, int8_t *  C, int32_t* bias, int R1, int C2, int C1, uint8_t layer_id)
-{
-
-    with cornelia
-        A*B (MxV) 8bit into 32bit
-
-    set imc to 0
-    32bit into 8bit
-
-    for(int i = 0; i < R1; i++) {
-//        for(int j = 0; j < C2; j++) { C2 is always 1
-            int32_t acc = 0;
-            int j = 0;
-            for(int k = 0; k < C1; k++) {
-                acc+= A[i*C1+k] * B[k*C2+j];
-            }
-            tmp_matrix32[i * C2 + j] = bias[i * C2 + j] + acc;
-            C[i * C2 + j] = (int8_t) (tmp_matrix32[i * C2 + j]);
-//        }
-    }
-
-}
-#endif
 
 #ifdef OPENHW_GROUP_COMPILER
 void __attribute__ ((noinline)) dense8to32_xpulp(int32_t* tmp_matrix32, int8_t *  A, int8_t *  B, int8_t *  C, int32_t* bias, int R1, int C2, int C1, uint8_t layer_id)
