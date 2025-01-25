@@ -3,7 +3,7 @@
 #define OUTPUT_LAYER_4_H_
 #include <stdint.h>
  int8_t __attribute__((section(".xheep_data_interleaved"))) output_layer_4[] = {
--83,102,-106,-54,-69,-27,98,58,
+18,0,0,0,0,115,0,0,
 };
 
 #endif //OUTPUT_LAYER_4_H_

@@ -58,9 +58,10 @@ class Layer:
         self.matmul = np.matmul(weights.matrix.astype(np.int32),input.astype(np.int32)) + weights.bias.astype(np.int32)
         self.batchnorm = (self.matmul - weights.mean)/weights.scale
         #self.output_reg = np.right_shift(self.output, 20).astype(np.int8)
-        self.batchnorm_reg = self.batchnorm.astype(np.int8)
-        self.relu = np.maximum(0, self.batchnorm_reg)
+        #self.batchnorm_reg = self.batchnorm.astype(np.int8)
+        #self.relu = np.maximum(0, self.batchnorm_reg)
         self.output = self.matmul.astype(np.int8)
+        self.output = np.maximum(0, self.output).astype(np.int8)
 
     def printf_exp_value_header_file(self):
 

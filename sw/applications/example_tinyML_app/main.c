@@ -37,15 +37,15 @@
 #include "input_signal.h"
 
 #define COMPUTE_LAYER_0
-//#define COMPUTE_LAYER_1
-//#define COMPUTE_LAYER_2
-//#define COMPUTE_LAYER_3
-//#define COMPUTE_LAYER_4
-//#define COMPUTE_LAYER_5
-//#define COMPUTE_LAYER_6
-//#define COMPUTE_LAYER_7
-//#define COMPUTE_LAYER_8
-//#define COMPUTE_LAYER_9
+#define COMPUTE_LAYER_1
+#define COMPUTE_LAYER_2
+#define COMPUTE_LAYER_3
+#define COMPUTE_LAYER_4
+#define COMPUTE_LAYER_5
+#define COMPUTE_LAYER_6
+#define COMPUTE_LAYER_7
+#define COMPUTE_LAYER_8
+#define COMPUTE_LAYER_9
 
 #define CHECK_LAYER_0
 //#define CHECK_LAYER_1
@@ -56,7 +56,7 @@
 //#define CHECK_LAYER_6
 //#define CHECK_LAYER_7
 //#define CHECK_LAYER_8
-//#define CHECK_LAYER_9
+#define CHECK_LAYER_9
 
 #include "weight0.h"
 #ifdef CHECK_LAYER_0
@@ -112,15 +112,13 @@
 #define TILING_ROWS_9 128
 #define DO_TILING 1
 
+#define OPENHW_GROUP_COMPILER
+
 #ifdef OPENHW_GROUP_COMPILER
     typedef int8_t  v4qi __attribute__ ((vector_size (4)));
     #define dense8to32 dense8to32_xpulp
 #else
-    #ifdef USE_CAESAR
-        #define dense8to32 dense8to32_caesar
-    #else
-        #define dense8to32 dense8to32_generic
-    #endif
+    #define dense8to32 dense8to32_generic
 #endif
 
 int32_t __attribute__((section(".xheep_data_interleaved"))) global_matrix_buffer[WEIGHT0_ROW_] = {0};
@@ -166,9 +164,10 @@ void __attribute__ ((noinline)) dense8to32_generic(int32_t* tmp_matrix32, int8_t
     for(int i = 0; i < R1; i++) {
         int32_t acc = bias[i];
         for(int k = 0; k < C1; k++) {
-            acc+= A[i*C1+k] * B[k*C2+j];
+            acc+= A[i*C1+k] * B[k];
         }
-        C[i] = (int8_t) (acc);
+        int8_t acc_cast = (int8_t) (acc);
+        C[i] = acc_cast > 0 ? acc_cast : 0;
     }
 }
 
@@ -180,22 +179,33 @@ void __attribute__ ((noinline)) dense8to32_xpulp(int32_t* tmp_matrix32, int8_t *
     v4qi* av;
     v4qi* bv;
 
-    for(int i = 0; i < R1; i++) {
-//        for(int j = 0; j < C2; j++) { C2 is always 1
-            int32_t acc = 0;
-            av = (v4qi *) &A[i*C1];
-            bv = (v4qi *) &B[0];
-            int j = 0;
-            for(int k = 0; k < C1; k+=4) {
+    v4qi a0;
+    v4qi b0;
 
-                v4qi a0 = *av;
-                v4qi b0 = *bv;
-                acc =  __builtin_riscv_cv_simd_sdotsp_b((int32_t)a0, (int32_t)b0, acc);
-                av++; bv++;
-            }
-            tmp_matrix32[i * C2 + j] = bias[i * C2 + j] + acc;
-            C[i * C2 + j] = (int8_t) (tmp_matrix32[i * C2 + j]);
-//        }
+    for(int i = 0; i < R1; i++) {
+        int32_t acc = 0;
+        av = (v4qi *) &A[i*C1];
+        bv = (v4qi *) &B[0];
+        for(int k = 0; k < C1; k+=4) {
+
+            a0 = *av;
+            b0 = *bv;
+            acc =  __builtin_riscv_cv_simd_sdotsp_b((int32_t)a0, (int32_t)b0, acc);
+            av++; bv++;
+        }
+        C[i] = (int8_t) (acc);
+    }
+
+    av = (v4qi *) &C[0];
+
+    for(int i = 0; i < (R1>>2); i+=2) { //>>2 /4 for SIMD, +=2 for unrolling
+
+        a0 = av[i];
+        b0 = av[i+1];
+        a0 = (v4qi) __builtin_riscv_cv_simd_max_sc_b ((uint32_t)a0, 0);
+        b0 = (v4qi) __builtin_riscv_cv_simd_max_sc_b ((uint32_t)b0, 0);
+        av[i] = a0;
+        av[i+1] = b0;
     }
 
 }
@@ -265,14 +275,9 @@ int main(int argc, char *argv[]) {
 
             num_tiles = WEIGHT0_ROW_ / TILING_ROWS_0;
 
-#ifndef USE_CAESAR
             copy_data(input_signal, output_layer_buffer0_l1, INPUT_SIGNAL_SIZE_);
             input_ptr = output_layer_buffer0_l1;
             output_ptr = output_layer_buffer1_l1;
-#else
-            input_ptr = 4kB of the second bank;
-            output_ptr = address of input_ptr + INPUT SIZE;
-#endif
 
             for(int i=0; i<num_tiles;i++) {
                 copy_data(&weight0_w[i*WEIGHT0_COL_*TILING_ROWS_0], weight_buffer_l1, TILING_ROWS_0*INPUT_SIGNAL_SIZE_);
