@@ -2,9 +2,8 @@
 // Solderpad Hardware License, Version 2.1, see LICENSE.md for details.
 // SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
 //
-// File: sw/applications/example_data_processing_from_flash/main.c
-// Author:  Francesco Poluzzi
-// Date: 29/07/2024
+// Author:  Davide Schiavone
+// Date: 20/01/2025
 
 /**
  * @file main.c
@@ -48,7 +47,7 @@
 #define COMPUTE_LAYER_8
 #define COMPUTE_LAYER_9
 
-//#define CHECK_LAYER_0
+#define CHECK_LAYER_0
 //#define CHECK_LAYER_1
 //#define CHECK_LAYER_2
 //#define CHECK_LAYER_3
@@ -113,11 +112,13 @@
 #define TILING_ROWS_9 128
 #define DO_TILING 1
 
+#define OPENHW_GROUP_COMPILER
+
 #ifdef OPENHW_GROUP_COMPILER
-typedef int8_t  v4qi __attribute__ ((vector_size (4)));
-#define dense8to32 dense8to32_xpulp
+    typedef int8_t  v4qi __attribute__ ((vector_size (4)));
+    #define dense8to32 dense8to32_xpulp
 #else
-#define dense8to32 dense8to32_generic
+    #define dense8to32 dense8to32_generic
 #endif
 
 int32_t __attribute__((section(".xheep_data_interleaved"))) global_matrix_buffer[WEIGHT0_ROW_] = {0};
@@ -160,20 +161,16 @@ int8_t __attribute__((section(".xheep_data_interleaved_acc"))) output_layer_buff
 
 void __attribute__ ((noinline)) dense8to32_generic(int32_t* tmp_matrix32, int8_t *  A, int8_t *  B, int8_t *  C, int32_t* bias, int R1, int C2, int C1, uint8_t layer_id)
 {
-
     for(int i = 0; i < R1; i++) {
-//        for(int j = 0; j < C2; j++) { C2 is always 1
-            int32_t acc = 0;
-            int j = 0;
-            for(int k = 0; k < C1; k++) {
-                acc+= A[i*C1+k] * B[k*C2+j];
-            }
-            tmp_matrix32[i * C2 + j] = bias[i * C2 + j] + acc;
-            C[i * C2 + j] = (int8_t) (tmp_matrix32[i * C2 + j]);
-//        }
+        int32_t acc = bias[i];
+        for(int k = 0; k < C1; k++) {
+            acc+= A[i*C1+k] * B[k];
+        }
+        int8_t acc_cast = (int8_t) (acc);
+        C[i] = acc_cast > 0 ? acc_cast : 0;
     }
-
 }
+
 
 #ifdef OPENHW_GROUP_COMPILER
 void __attribute__ ((noinline)) dense8to32_xpulp(int32_t* tmp_matrix32, int8_t *  A, int8_t *  B, int8_t *  C, int32_t* bias, int R1, int C2, int C1, uint8_t layer_id)
@@ -182,22 +179,33 @@ void __attribute__ ((noinline)) dense8to32_xpulp(int32_t* tmp_matrix32, int8_t *
     v4qi* av;
     v4qi* bv;
 
-    for(int i = 0; i < R1; i++) {
-//        for(int j = 0; j < C2; j++) { C2 is always 1
-            int32_t acc = 0;
-            av = (v4qi *) &A[i*C1];
-            bv = (v4qi *) &B[0];
-            int j = 0;
-            for(int k = 0; k < C1; k+=4) {
+    v4qi a0;
+    v4qi b0;
 
-                v4qi a0 = *av;
-                v4qi b0 = *bv;
-                acc =  __builtin_riscv_cv_simd_sdotsp_b((int32_t)a0, (int32_t)b0, acc);
-                av++; bv++;
-            }
-            tmp_matrix32[i * C2 + j] = bias[i * C2 + j] + acc;
-            C[i * C2 + j] = (int8_t) (tmp_matrix32[i * C2 + j]);
-//        }
+    for(int i = 0; i < R1; i++) {
+        int32_t acc = 0;
+        av = (v4qi *) &A[i*C1];
+        bv = (v4qi *) &B[0];
+        for(int k = 0; k < C1; k+=4) {
+
+            a0 = *av;
+            b0 = *bv;
+            acc =  __builtin_riscv_cv_simd_sdotsp_b((int32_t)a0, (int32_t)b0, acc);
+            av++; bv++;
+        }
+        C[i] = (int8_t) (acc);
+    }
+
+    av = (v4qi *) &C[0];
+
+    for(int i = 0; i < (R1>>2); i+=2) { //>>2 /4 for SIMD, +=2 for unrolling
+
+        a0 = av[i];
+        b0 = av[i+1];
+        a0 = (v4qi) __builtin_riscv_cv_simd_max_sc_b ((uint32_t)a0, 0);
+        b0 = (v4qi) __builtin_riscv_cv_simd_max_sc_b ((uint32_t)b0, 0);
+        av[i] = a0;
+        av[i+1] = b0;
     }
 
 }
@@ -268,7 +276,6 @@ int main(int argc, char *argv[]) {
             num_tiles = WEIGHT0_ROW_ / TILING_ROWS_0;
 
             copy_data(input_signal, output_layer_buffer0_l1, INPUT_SIGNAL_SIZE_);
-
             input_ptr = output_layer_buffer0_l1;
             output_ptr = output_layer_buffer1_l1;
 
