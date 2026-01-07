@@ -19,8 +19,6 @@
     #define PRINTF(...)
 #endif
 
-#define MATMUL16
-
 #if defined(MATMUL8)
     #define input_type_t int8_t
     #include "matrixMul8.h"
@@ -79,7 +77,7 @@ int main()
 
 #ifdef HIGHEST_PERF
     #pragma message ( "single block MatMul is compiled" )
-    #if defined(__PULP_EXTENSIONS) && (defined(MATMUL8) || defined(MATMUL16))
+    #if defined(__COREV_OPT_ASM) && (defined(MATMUL8) || defined(MATMUL16))
         #pragma message ( "using hand-optimized XCOREV_PULP kernel with transposed matrix B" )
         matrixMul_blocksize(m_a, m_b_t, m_c, SIZE);
     #else
@@ -99,7 +97,7 @@ int main()
     return errors;
 }
 
-#ifndef __PULP_EXTENSIONS
+#ifndef __COREV_OPT_ASM
 void __attribute__ ((noinline)) matrixMul_blocksize(input_type_t *  A, input_type_t *  B, int32_t *  C, int N)
 {
 
@@ -123,7 +121,11 @@ void __attribute__ ((noinline)) matrixMul_blocksize(input_type_t *  A, input_typ
         for(int j = 0; j < N; j++) {
             int32_t acc = 0;
             //if(j==1 || j==0) printf("B %x\n", &B[j]);
+#if defined(MATMUL32)
             input_type_t* b_ptr = &B[j];
+#else
+            input_type_t* b_ptr = &B[j*SIZE]; //because it's transposed
+#endif
             input_type_t* a_ptr = &A[i*SIZE];
             int32_t* c_ptr = &C[i*SIZE+j];
             //for(int k = 0; k < N; k+=2) {
@@ -155,8 +157,8 @@ void __attribute__ ((noinline)) matrixMul_blocksize(input_type_t *  A, input_typ
 #elif defined(MATMUL16)
             asm volatile(
             "cv.setup 1,%8,store_mac \n\t" //for(int k = 0; k < N; k+=2) {
-                    "lw	%1,0(%5)\n\t"
-                    "lw	%2,0(%6)\n\t"
+                    "lw	%1,4(%5)\n\t"
+                    "lw	%2,4(%6)\n\t"
                     "cv.lw	%3,(%5),8\n\t"
                     "cv.lw	%4,(%6),8\n\t"
                     "cv.sdotsp.h  %0, %1, %2\n\t"
@@ -165,11 +167,11 @@ void __attribute__ ((noinline)) matrixMul_blocksize(input_type_t *  A, input_typ
                     : "+r"(acc), "=&r"(a0), "=&r"(b0), "=&r"(a1), "=&r"(b1), "+r"(a_ptr),"+r"(b_ptr)
                     : "r"(c_ptr), "r"(N>>2)
                 );
-#elif defined(MATMUL16)
+#elif defined(MATMUL8)
             asm volatile(
             "cv.setup 1,%8,store_mac \n\t" //for(int k = 0; k < N; k+=2) {
-                    "lw	%1,0(%5)\n\t"
-                    "lw	%2,0(%6)\n\t"
+                    "lw	%1,4(%5)\n\t"
+                    "lw	%2,4(%6)\n\t"
                     "cv.lw	%3,(%5),8\n\t"
                     "cv.lw	%4,(%6),8\n\t"
                     "cv.sdotsp.b  %0, %1, %2\n\t"
