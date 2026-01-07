@@ -93,7 +93,7 @@ int main()
 
     errors = check_results(m_c, SIZE);
 
-    printf("program finished with %d errors and %d cycles\n\r", errors, cycles);
+    PRINTF("program finished with %d errors and %d cycles\n\r", errors, cycles);
     return errors;
 }
 
