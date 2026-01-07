@@ -81,7 +81,7 @@ int main()
         #pragma message ( "using hand-optimized XCOREV_PULP kernel with transposed matrix B" )
         matrixMul_blocksize(m_a, m_b_t, m_c, SIZE);
     #else
-        #pragma message ( "using hand-optimized XCOREV_PULP kernel" )
+        #pragma message ( "using standard matmul kernel" )
         matrixMul_blocksize(m_a, m_b, m_c, SIZE);
     #endif
 #else
