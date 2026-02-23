@@ -47,6 +47,7 @@ lint_off -rule UNUSED -file "*/ao_peripheral_subsystem.sv" -match "Signal is not
 lint_off -rule UNUSED -file "*/ao_peripheral_subsystem.sv" -match "Signal is not used: 'cio_gpio_i'*"
 lint_off -rule UNUSED -file "*/ao_peripheral_subsystem.sv" -match "Signal is not used: 'spi*"
 lint_off -rule UNUSED -file "*/ao_peripheral_subsystem.sv" -match "Signal is not used: 'use_spimemio'*"
+lint_off -rule UNUSED -file "*/ao_peripheral_subsystem.sv" -match "Signal is not used: 'external_dma_hw2reg'*"
 lint_off -rule UNUSED -file "*/cve2_xif_wrapper.sv" -match "Bits of signal are not used: 'cve2_x_issue_req'[35:4]"
 lint_off -rule UNUSED -file "*/cve2_xif_wrapper.sv" -match "Bits of signal are not used: 'cve2_x_register'[101:66]"
 lint_off -rule UNUSED -file "*/cve2_xif_wrapper.sv" -match "Bits of signal are not used: 'cve2_x_commit'[36:5]"
