@@ -700,7 +700,7 @@ module cve2_core import cve2_pkg::*; #(
     .RV32E            (RV32E),
     .DataWidth        (32),
     .WordZeroVal      (32'h0),
-    .XInterface
+    .XInterface       (XInterface)
   ) register_file_i (
     .clk_i (clk_i),
     .rst_ni(rst_ni),
