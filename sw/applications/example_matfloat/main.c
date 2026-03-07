@@ -163,8 +163,8 @@ int main()
     if(check_results(vec_c, vec_sum, SIZE)) return -1;
 
     //execute the kernel
-
-    if (dotp(vec_a, vec_b, SIZE) != dot_exp) return -2;
+    float dot_res = dotp(vec_a, vec_b, SIZE);
+    if( fabs(dot_res - dot_exp) > 0.0001f ) return -2;
 
 #ifdef ENABLE_PRINTF
     print_vector(vec_c,SIZE);
