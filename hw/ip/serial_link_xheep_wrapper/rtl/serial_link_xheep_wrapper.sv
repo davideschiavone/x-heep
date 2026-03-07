@@ -117,7 +117,7 @@ module serial_link_xheep_wrapper
       .clk_o(rst_serial_link_n)
   );
 
-  if (NumChannels > 1) begin : gen_multi_channel_serial_link
+  if (serial_link_minimum_axi_pkg::NumChannels > 1) begin : gen_multi_channel_serial_link
     serial_link #(
         .axi_req_t  (serial_link_minimum_axi_pkg::axi_req_t),
         .axi_rsp_t  (serial_link_minimum_axi_pkg::axi_resp_t),
