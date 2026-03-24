@@ -74,8 +74,12 @@ if xif != None:
     cv32e20_params.append(f".X_INTERFACE(1'b1)")
     cv32e20_params.append(f".X_INTERFACE_NUM_RS({xif.x_num_rs})")
 
+
 if cpu.is_defined("num_mhpmcounters"):
     cv32e20_params.append(f".MHPMCounterNum({cpu.get_sv_str('num_mhpmcounters')})")
+
+cv32e20_params.append(f".X_INTERFACE_NUM_RS({xif.x_num_rs})")
+
 %>
 
     cve2_xif_wrapper #(

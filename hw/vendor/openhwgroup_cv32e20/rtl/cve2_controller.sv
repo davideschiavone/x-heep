@@ -151,6 +151,7 @@ module cve2_controller #(
   logic dret_insn;
   logic wfi_insn;
   logic ebrk_insn;
+  logic fence_insn;
   logic csr_pipe_flush;
   logic instr_fetch_err;
 
@@ -181,6 +182,7 @@ module cve2_controller #(
   assign dret_insn       = dret_insn_i       & instr_valid_i;
   assign wfi_insn        = wfi_insn_i        & instr_valid_i;
   assign ebrk_insn       = ebrk_insn_i       & instr_valid_i;
+  assign fence_insn      = fence_insn_i      & instr_valid_i;
   assign csr_pipe_flush  = csr_pipe_flush_i  & instr_valid_i;
   assign instr_fetch_err = instr_fetch_err_i & instr_valid_i;
 
@@ -220,7 +222,9 @@ module cve2_controller #(
   assign special_req_flush_only = wfi_insn | csr_pipe_flush;
 
   // These special requests cause a change in PC
-  assign special_req_pc_change = mret_insn | dret_insn | exc_req_d | exc_req_lsu;
+  // To keep sequential equivalence, fence flushes only when the XInterface is active
+  // otherwise it just jumps to PC+4 without flushing
+  assign special_req_pc_change = mret_insn | dret_insn | exc_req_d | exc_req_lsu | (XInterface && fence_insn);
 
   // generic special request signal, applies to all instructions
   assign special_req = special_req_pc_change | special_req_flush_only;
@@ -673,7 +677,11 @@ module cve2_controller #(
             csr_restore_dret_id_o = 1'b1;
           end else if (wfi_insn) begin
             ctrl_fsm_ns           = WAIT_SLEEP;
-          end
+          end else if (fence_insn) begin
+            pc_mux_o              = PC_JUMP;
+            pc_set_o              = 1'b1;
+          end 
+
         end // exc_req_q
 
         // Entering debug mode due to either single step or debug_req. Ensure
