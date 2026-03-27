@@ -60,14 +60,8 @@ filesets:
   rtl-simulation:
     depend:
     - pulp-platform.org::tech_cells_generic
-    files:
-    - hw/simulation/sram_wrapper.sv
-    - hw/simulation/pad_cell_bypass_input.sv
-    - hw/simulation/pad_cell_bypass_output.sv
-    - hw/simulation/pad_cell_inout.sv
-    - hw/simulation/pad_cell_input.sv
-    - hw/simulation/pad_cell_output.sv
-    file_type: systemVerilogSource
+    - x-heep:sim:sram_wrapper
+    - x-heep:sim:pad_cells
 
   x_heep_system:
     depend:
@@ -98,7 +92,6 @@ filesets:
     - hw/ip/fast_intr_ctrl/fast_intr_ctrl.vlt
     - hw/system/pad_control/pad_control.vlt
     - hw/system/x_heep_system.vlt
-    - hw/simulation/simulation.vlt
     - hw/ip/serial_link_xheep_wrapper/serial_link_xheep_wrapper.vlt
     file_type: vlt
 
@@ -299,9 +292,7 @@ targets:
   default: &default_target
     filesets:
     - files_rtl_generic
-    - target_sim ? (rtl-simulation)
     - target_sim ? (tool_verilator? (files_verilator_waiver))
-    - target_sim_sc ? (rtl-simulation)
     - target_sim_sc ? (tool_verilator? (files_verilator_waiver))
     toplevel: [core_v_mini_mcu]
 
@@ -310,6 +301,7 @@ targets:
     default_tool: modelsim
     filesets_append:
     - tb-utils
+    - rtl-simulation
     - tool_modelsim? (pre_build_remote_bitbang)
     - tool_modelsim? (pre_build_uartdpi)
     - tool_modelsim? (pre_patch_modelsim_Makefile)
@@ -404,6 +396,7 @@ targets:
     default_tool: verilator
     filesets_append:
     - tb-utils
+    - rtl-simulation
     - tool_verilator? (tb-sc-verilator)
     - "!integrated_heep? (x_heep_system)"
     toplevel:
