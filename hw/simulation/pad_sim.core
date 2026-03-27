@@ -26,6 +26,5 @@ filesets:
 targets:
   default:
     filesets:
-    - target_sim ? (tool_verilator? (files_verilator_waiver))
-    - target_sim ? (files_sim)
-    - target_sim_sc ? (files_sim)
+    - tool_verilator? (files_verilator_waiver)
+    - files_sim
