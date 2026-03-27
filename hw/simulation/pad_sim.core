@@ -11,8 +11,6 @@ description: "behavioral sim cells"
 filesets:
   files_sim:
     files:
-    - pad_cell_bypass_input.sv
-    - pad_cell_bypass_output.sv
     - pad_cell_inout.sv
     - pad_cell_input.sv
     - pad_cell_output.sv
