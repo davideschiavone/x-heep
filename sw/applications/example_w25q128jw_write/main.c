@@ -272,7 +272,7 @@ int main(void) {
     w25q128jw_controller_run(1, 0, flash_ptr_test2);
 
     // we read back in HW to test READ-After-WRITE
-    
+
     // we use interrupt now
     // Clear HW regs before starting operation
     w25q128jw_controller_clear_status_register();
@@ -295,7 +295,7 @@ int main(void) {
     }
 
     // Reset dma wait counter
-    w25q128jw_set_dma_slot_wait_counter(2);
+    w25q128jw_set_dma_slot_wait_counter(0);
 
 
     /**************************************************************** */
@@ -405,7 +405,7 @@ int main(void) {
     w25q128jw_controller_run(1, 1, flash_ptr_test2);
 
     // we read back in HW to test READ-After-WRITE
-    
+
     // we use interrupt now
     // Clear HW regs before starting operation
     w25q128jw_controller_clear_status_register();
@@ -428,7 +428,7 @@ int main(void) {
     }
 
     // Reset dma wait counter
-    w25q128jw_set_dma_slot_wait_counter(2);
+    w25q128jw_set_dma_slot_wait_counter(0);
 
 
     /**************************************************************** */
