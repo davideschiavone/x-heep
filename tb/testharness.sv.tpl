@@ -168,11 +168,11 @@ module testharness #(
   fifo_resp_t [core_v_mini_mcu_pkg::DMA_CH_NUM-1:0] hw_fifo_resp;
 
 
-  logic [serial_link_single_channel_reg_pkg::NumChannels-1:0] ddr_clk_o_xheep;
-  logic [serial_link_single_channel_reg_pkg::NumChannels-1:0] ddr_clk_i_xheep;
+  wire [serial_link_single_channel_reg_pkg::NumChannels-1:0] ddr_clk_o_xheep;
+  wire [serial_link_single_channel_reg_pkg::NumChannels-1:0] ddr_clk_i_xheep;
   % if user_peripheral_domain.contains_peripheral('serial_link'):
-  logic [serial_link_single_channel_reg_pkg::NumChannels-1:0][serial_link_minimum_axi_pkg::NumLanes-1:0] ddr_i_xheep; 
-  logic [serial_link_single_channel_reg_pkg::NumChannels-1:0][serial_link_minimum_axi_pkg::NumLanes-1:0] ddr_o_xheep;
+  wire [serial_link_single_channel_reg_pkg::NumChannels-1:0][serial_link_minimum_axi_pkg::NumLanes-1:0] ddr_i_xheep;
+  wire [serial_link_single_channel_reg_pkg::NumChannels-1:0][serial_link_minimum_axi_pkg::NumLanes-1:0] ddr_o_xheep;
   assign ddr_o_xheep[0][0] = gpio[7];
   assign ddr_o_xheep[0][1] = gpio[8];
   assign ddr_o_xheep[0][2] = gpio[9];
@@ -767,7 +767,7 @@ module testharness #(
             .xif_mem_if             (ext_if),
             .xif_mem_result_if      (ext_if),
             .xif_result_if          (ext_if),
-            // OBI signals 
+            // OBI signals
             .quadrilatero_ch0_req_o (ext_master_req[testharness_pkg::EXT_MASTER4_IDX]),
             .quadrilatero_ch0_resp_i(ext_master_resp[testharness_pkg::EXT_MASTER4_IDX]),
             .quadrilatero_ch1_req_o (ext_master_req[testharness_pkg::EXT_MASTER5_IDX]),
