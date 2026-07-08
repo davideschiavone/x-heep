@@ -16,6 +16,19 @@ using namespace std;
 #include <sstream>
 #include <iomanip>
 
+struct OBIRequest {
+  bool we;
+  uint32_t be;
+  uint32_t addr;
+  uint32_t wdata;
+};
+
+inline std::ostream& operator<<(std::ostream& os, const OBIRequest& req) {
+  os << (req.we ? "W" : "R") << " @0x" << std::hex << req.addr
+     << " data=0x" << req.wdata << " be=0x" << req.be << std::dec;
+  return os;
+}
+
 // MemoryRequest module generating generic payload transactions
 
 SC_MODULE(MemoryRequest)
@@ -28,6 +41,7 @@ SC_MODULE(MemoryRequest)
   uint32_t                                      rwdata_io;
   CacheMemory*                                  cache;
   std::ofstream                                 heep_mem_transactions;
+  sc_fifo<OBIRequest>*                           request_fifo = nullptr;
   bool                                          bypass_state = false;
 
   typedef struct cache_statistics
@@ -112,7 +126,11 @@ SC_MODULE(MemoryRequest)
 
     while(true) {
 
-      wait(obi_new_req);
+      OBIRequest req = request_fifo->read();
+      we_i   = req.we;
+      be_i   = req.be;
+      addr_i = req.addr;
+      rwdata_io = req.wdata;
 
       heep_mem_transactions << "X-HEEP tlm_generic_payload REQ: { " << (we_i ? 'W' : 'R') << ", @0x" << hex << addr_i
                 << " , DATA = 0x" << hex << rwdata_io << " BE = " << hex << be_i <<", at time " << sc_time_stamp() << " }" << std::endl;

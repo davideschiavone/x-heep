@@ -15,7 +15,6 @@
 sc_event reset_done_event;
 sc_event obi_new_gnt;
 sc_event obi_new_rvalid;
-sc_event obi_new_req;
 
 
 #include "systemc_tb/MemoryRequest.h"
@@ -37,13 +36,15 @@ SC_MODULE(external_memory)
   sc_out<bool>         ext_systemc_resp_rvalid_o;
   sc_out<uint32_t>     ext_systemc_resp_rdata_o;
 
+  sc_fifo<OBIRequest> request_fifo;
+  bool req_sent = false;
+
   void notify_obi_transaction () {
-    if(ext_systemc_req_req_i) {
-      obi_new_req.notify();
-      memory_request->we_i    = ext_systemc_req_we_i;
-      memory_request->be_i    = ext_systemc_req_be_i;
-      memory_request->addr_i  = ext_systemc_req_addr_i;
-      memory_request->rwdata_io = ext_systemc_req_wdata_i;
+    if(ext_systemc_req_req_i && !req_sent) {
+      req_sent = true;
+      OBIRequest req = {ext_systemc_req_we_i, ext_systemc_req_be_i,
+                        ext_systemc_req_addr_i, ext_systemc_req_wdata_i};
+      request_fifo.nb_write(req);
     }
   }
 
@@ -51,6 +52,7 @@ SC_MODULE(external_memory)
     while (true) {
       ext_systemc_resp_gnt_o.write(false);
       wait(obi_new_gnt);
+      req_sent = false;
       ext_systemc_resp_gnt_o.write(true);
       wait();
     }
@@ -70,10 +72,11 @@ SC_MODULE(external_memory)
   {
     // Instantiate components
     memory_request = new MemoryRequest("memory_request");
+    memory_request->request_fifo = &request_fifo;
     memory         = new MainMemory   ("main_memory");
 
     SC_METHOD(notify_obi_transaction);
-    sensitive << ext_systemc_req_req_i;
+    sensitive << ext_systemc_req_req_i << clk_i.pos();
 
     SC_CTHREAD(give_gnt_back, clk_i.pos());
     SC_CTHREAD(give_rvalid_rdata_back, clk_i.pos());
