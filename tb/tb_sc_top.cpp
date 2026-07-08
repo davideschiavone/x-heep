@@ -319,19 +319,29 @@ int sc_main (int argc, char * argv[])
   dut.trace(tfp, 99);  // Trace 99 levels of hierarchy
   tfp->open("waveform.fst");
 
-  // Simulate until $finish
-  while (!Verilated::gotFinish() && exit_valid !=1 ) {
+  // Simulate until $finish, exit_valid, or max_sim_time
+  sc_time max_sc_time((double)max_sim_time, SC_PS);
+  while (!Verilated::gotFinish() && exit_valid != 1) {
       // Flush the wave files each cycle so we can immediately see the output
       // Don't do this in "real" programs, do it in an abort() handler instead
       if (tfp) tfp->flush();
       // Simulate 1ns
       sc_start(1, SC_NS);
+      if (!run_all && sc_time_stamp() >= max_sc_time) break;
   }
 
+  vluint64_t sim_cycles = (vluint64_t)(sc_time_stamp().to_seconds() * 1e12 / CLK_PERIOD_ps);
+  std::cout << "Simulation finished after " << sim_cycles << " clock cycles" << std::endl;
+
+  // This should be the last message printed so that the scripts like test-all can catch the exit value properly.
+  // The return value should be the last character (in case it is 0)
   if(exit_valid == 1) {
     std::cout<<"Program Finished with value "<< exit_value <<std::endl;
     exit_val = EXIT_SUCCESS;
-  } else exit_val = EXIT_FAILURE;
+  } else {
+    std::cout<<"Simulation was terminated before program finished"<<std::endl;
+    exit_val = 2;
+  }
 
   // Final model cleanup
   dut.final();
