@@ -9,15 +9,12 @@
 #include "CacheMemoryController.h"
 #include "MainMemory.h"
 
-// ObiMemorySlave is a thin combinational shim between the OBI pins and the
-// memory model. It holds NO state and NO clock of its own:
-//   * pack_req  (always_comb): packs the OBI address-phase pins into one ObiReq
-//     struct signal, the memory's only request input;
-//   * drive_pins(always_comb): gnt = req && mem_ready (same-cycle grant), and
-//     rvalid/rdata are passed straight through from the memory's registered
-//     outputs.
-// All the state (grant tracking, cycle counters, cache) lives in CacheMemoryController,
-// which is clocked. There is no FIFO and no driver thread anymore.
+// ObiMemorySlave: a stateless, clockless shim between the OBI pins and the
+// memory model (CacheMemoryController). Two combinational methods:
+//   * pack_req   : packs the OBI request pins into one ObiReq struct signal;
+//   * drive_pins : gnt = req && mem_ready (same-cycle grant on a HIT); rvalid
+//                  and rdata pass through the controller's registered outputs.
+// All state (grant/response FSM, counters, cache) lives in the controller.
 SC_MODULE(ObiMemorySlave)
 {
   CacheMemoryController *cache_memory_controller;
@@ -33,10 +30,10 @@ SC_MODULE(ObiMemorySlave)
   sc_out<bool>         ext_systemc_resp_rvalid_o;
   sc_out<uint32_t>     ext_systemc_resp_rdata_o;
 
-  sc_signal<ObiReq>    obi_packet_req;  // presented request (packed from the pins)
-  sc_signal<bool>      mem_ready;   // <- memory: grant permission
-  sc_signal<bool>      mem_rvalid;  // <- memory: registered rvalid
-  sc_signal<uint32_t>  mem_rdata;   // <- memory: registered rdata
+  sc_signal<ObiReq>    obi_packet_req;  // request packed from the pins
+  sc_signal<bool>      mem_ready;       // <- controller: grant permission
+  sc_signal<bool>      mem_rvalid;      // <- controller: registered rvalid
+  sc_signal<uint32_t>  mem_rdata;       // <- controller: registered rdata
 
   // always_comb: pack the OBI address-phase pins into one struct signal.
   void pack_req () {

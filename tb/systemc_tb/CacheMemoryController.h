@@ -16,9 +16,8 @@ using namespace std;
 #include <sstream>
 #include <iomanip>
 
-// Address-phase request bundle. The testbench packs the OBI pins into ONE of
-// these combinationally and hands it to the memory as its only request input
-// (a single sc_signal). The memory never touches the raw DUT pins.
+// OBI address-phase request, packed by the testbench into a single signal. This
+// is the controller's only request input; it never sees the raw DUT pins.
 struct ObiReq {
   bool     req   = false;
   bool     we    = false;
@@ -35,25 +34,23 @@ inline std::ostream& operator<<(std::ostream& os, const ObiReq& r) {
 }
 inline void sc_trace(sc_trace_file*, const ObiReq&, const std::string&) {}
 
-// CacheMemoryController is the memory model, written RTL-style: one always_comb
-// (mem_ready_comb) and one always_ff (mem_seq) driven by clk. It owns the cache,
-// the hit/miss/bypass/config decision, and ALL the timing as plain cycle counts
-// (no sc_time). It knows nothing about the OBI pins: it reads the presented
-// request as a struct (a_i) and drives grant/response as signals the testbench
-// turns into pins:
-//   * mem_ready_o : combinational grant permission (HIT/config -> now; MISS ->
-//                   after MISS_N counted cycles). Same-cycle for a HIT => req+0.
-//   * mem_rvalid_o / mem_rdata_o : registered response, RESP-counted cycles after grant.
+// CacheMemoryController: the memory model as an RTL FSM -- one always_comb
+// (mem_ready_comb) + one always_ff (mem_seq) on clk. It owns the cache and all
+// timing, counted in clock cycles (no sc_time), and knows nothing about OBI. It
+// reads the request struct (obi_packet_req_i) and drives back:
+//   * mem_ready_o              : combinational grant -- now for a HIT/config
+//                                (REQ+0), after MISS_N cycles for a MISS (REQ+10);
+//   * mem_rvalid_o/mem_rdata_o : registered response, RESP_N cycles later (GNT+2).
 SC_MODULE(CacheMemoryController)
 {
   // TLM-2 socket to main memory, defaults to 32-bits wide, base protocol
   tlm_utils::simple_initiator_socket<CacheMemoryController> socket;
 
   sc_in<bool>      clk_i;
-  sc_in<ObiReq>    obi_packet_req_i;  // presented request (combinational, from the TB)
-  sc_out<bool>     mem_ready_o;  // grant permission (comb) -> drives gnt
-  sc_out<bool>     mem_rvalid_o;     // response valid (registered)
-  sc_out<uint32_t> mem_rdata_o;      // response data  (registered)
+  sc_in<ObiReq>    obi_packet_req_i;  // presented request (combinational)
+  sc_out<bool>     mem_ready_o;       // grant permission (comb) -> gnt
+  sc_out<bool>     mem_rvalid_o;      // response valid (registered)
+  sc_out<uint32_t> mem_rdata_o;       // response data  (registered)
 
   CacheMemory*   cache;
   std::ofstream  heep_mem_transactions;
@@ -119,9 +116,8 @@ SC_MODULE(CacheMemoryController)
     return we && ((addr & 0x00007FFF) == 0x00007FFC);
   }
 
-  // always_comb: HIT / config -> ready in the same cycle as REQ; MISS/bypass ->
-  // ready only once the GWAIT counter has reached MISS_N. RWAIT (busy) -> not
-  // ready, which gives single-outstanding back-pressure for free.
+  // always_comb: ready now for a HIT/config; after the GWAIT counter reaches
+  // MISS_N for a MISS/bypass; never in RWAIT (single-outstanding back-pressure).
   void mem_ready_comb() {
     ObiReq r = obi_packet_req_i.read();
     bool special = r.req && is_config_write(r.we, r.addr);
