@@ -13,78 +13,9 @@
 #include "XHEEP_CmdLineOptions.hh"
 
 sc_event reset_done_event;
-sc_event obi_new_gnt;
-sc_event obi_new_rvalid;
 
 
-#include "systemc_tb/MemoryRequest.h"
-#include "systemc_tb/MainMemory.h"
-
-
-SC_MODULE(external_memory)
-{
-  MemoryRequest *memory_request;
-  MainMemory    *memory;
-
-  sc_in<bool>          clk_i;
-  sc_in<bool>          ext_systemc_req_req_i;
-  sc_in<bool>          ext_systemc_req_we_i;
-  sc_in<uint32_t>      ext_systemc_req_be_i;
-  sc_in<uint32_t>      ext_systemc_req_addr_i;
-  sc_in<uint32_t>      ext_systemc_req_wdata_i;
-  sc_out<bool>         ext_systemc_resp_gnt_o;
-  sc_out<bool>         ext_systemc_resp_rvalid_o;
-  sc_out<uint32_t>     ext_systemc_resp_rdata_o;
-
-  sc_fifo<OBIRequest> request_fifo;
-  bool req_sent = false;
-
-  void notify_obi_transaction () {
-    if(ext_systemc_req_req_i && !req_sent) {
-      req_sent = true;
-      OBIRequest req = {ext_systemc_req_we_i, ext_systemc_req_be_i,
-                        ext_systemc_req_addr_i, ext_systemc_req_wdata_i};
-      request_fifo.nb_write(req);
-    }
-  }
-
-  void give_gnt_back () {
-    while (true) {
-      ext_systemc_resp_gnt_o.write(false);
-      wait(obi_new_gnt);
-      req_sent = false;
-      ext_systemc_resp_gnt_o.write(true);
-      wait();
-    }
-  }
-
-  void give_rvalid_rdata_back () {
-    while (true) {
-      ext_systemc_resp_rvalid_o.write(false);
-      wait(obi_new_rvalid);
-      ext_systemc_resp_rvalid_o.write(true);
-      ext_systemc_resp_rdata_o.write(memory_request->rwdata_io);
-      wait();
-    }
-  }
-
-  SC_CTOR(external_memory)
-  {
-    // Instantiate components
-    memory_request = new MemoryRequest("memory_request");
-    memory_request->request_fifo = &request_fifo;
-    memory         = new MainMemory   ("main_memory");
-
-    SC_METHOD(notify_obi_transaction);
-    sensitive << ext_systemc_req_req_i << clk_i.pos();
-
-    SC_CTHREAD(give_gnt_back, clk_i.pos());
-    SC_CTHREAD(give_rvalid_rdata_back, clk_i.pos());
-
-    // Bind memory_request socket to target socket
-    memory_request->socket.bind( memory->socket );
-  }
-};
+#include "systemc_tb/ObiMemorySlave.h"
 
 
 SC_MODULE(testbench)
@@ -230,7 +161,7 @@ int sc_main (int argc, char * argv[])
 
   Vtestharness dut("TOP");
   testbench tb("testbench");
-  external_memory ext_mem("external_memory");
+  ObiMemorySlave ext_mem_obislave("obi_memory_slave");
 
   svSetScope(svGetScopeFromName("TOP.testharness"));
   svScope scope = svGetScope();
@@ -300,15 +231,15 @@ int sc_main (int argc, char * argv[])
   dut.ext_systemc_resp_rvalid_i(ext_systemc_resp_rvalid);
   dut.ext_systemc_resp_rdata_i(ext_systemc_resp_rdata);
 
-  ext_mem.clk_i(clk);
-  ext_mem.ext_systemc_req_req_i(ext_systemc_req_req);
-  ext_mem.ext_systemc_req_we_i(ext_systemc_req_we);
-  ext_mem.ext_systemc_req_be_i(ext_systemc_req_be);
-  ext_mem.ext_systemc_req_addr_i(ext_systemc_req_addr);
-  ext_mem.ext_systemc_req_wdata_i(ext_systemc_req_wdata);
-  ext_mem.ext_systemc_resp_gnt_o(ext_systemc_resp_gnt);
-  ext_mem.ext_systemc_resp_rdata_o(ext_systemc_resp_rdata);
-  ext_mem.ext_systemc_resp_rvalid_o(ext_systemc_resp_rvalid);
+  ext_mem_obislave.clk_i(clk);
+  ext_mem_obislave.ext_systemc_req_req_i(ext_systemc_req_req);
+  ext_mem_obislave.ext_systemc_req_we_i(ext_systemc_req_we);
+  ext_mem_obislave.ext_systemc_req_be_i(ext_systemc_req_be);
+  ext_mem_obislave.ext_systemc_req_addr_i(ext_systemc_req_addr);
+  ext_mem_obislave.ext_systemc_req_wdata_i(ext_systemc_req_wdata);
+  ext_mem_obislave.ext_systemc_resp_gnt_o(ext_systemc_resp_gnt);
+  ext_mem_obislave.ext_systemc_resp_rdata_o(ext_systemc_resp_rdata);
+  ext_mem_obislave.ext_systemc_resp_rvalid_o(ext_systemc_resp_rvalid);
 
 
 
