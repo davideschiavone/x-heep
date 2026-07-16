@@ -34,13 +34,13 @@ inline std::ostream& operator<<(std::ostream& os, const ObiReq& r) {
 }
 inline void sc_trace(sc_trace_file*, const ObiReq&, const std::string&) {}
 
-// CacheMemoryController: the memory model as an RTL FSM -- one always_comb
-// (mem_ready_comb) + one always_ff (mem_seq) on clk. It owns the cache and all
-// timing, counted in clock cycles (no sc_time), and knows nothing about OBI. It
-// reads the request struct (obi_packet_req_i) and drives back:
+// CacheMemoryController: the memory model as an RTL FSM -- two always_comb
+// (mem_ready_comb, mem_resp_comb) + one always_ff (mem_seq) on clk. It owns the
+// cache and all timing, counted in clock cycles (no sc_time), and knows nothing
+// about OBI. It reads the request struct (obi_packet_req_i) and drives back:
 //   * mem_ready_o              : combinational grant -- now for a HIT/config
 //                                (REQ+0), after MISS_N cycles for a MISS (REQ+10);
-//   * mem_rvalid_o/mem_rdata_o : registered response, RESP_N cycles later (GNT+2).
+//   * mem_rvalid_o/mem_rdata_o : combinational response decode, GNT+1+RESP_N (=GNT+2).
 SC_MODULE(CacheMemoryController)
 {
   // TLM-2 socket to main memory, defaults to 32-bits wide, base protocol
@@ -49,8 +49,8 @@ SC_MODULE(CacheMemoryController)
   sc_in<bool>      clk_i;
   sc_in<ObiReq>    obi_packet_req_i;  // presented request (combinational)
   sc_out<bool>     mem_ready_o;       // grant permission (comb) -> gnt
-  sc_out<bool>     mem_rvalid_o;      // response valid (registered)
-  sc_out<uint32_t> mem_rdata_o;       // response data  (registered)
+  sc_out<bool>     mem_rvalid_o;      // response valid (comb decode of FSM state)
+  sc_out<uint32_t> mem_rdata_o;       // response data  (comb, = resp_data)
 
   CacheMemory*   cache;
   std::ofstream  heep_mem_transactions;
@@ -64,7 +64,7 @@ SC_MODULE(CacheMemoryController)
 
   // ---- timing, in clock cycles (calibrated on the waveform) ----
   static const uint32_t MISS_N = 9;   // count in GWAIT  -> GNT at REQ+10
-  static const uint32_t RESP_N = 0;   // count in RWAIT  -> RVALID at GNT+2
+  static const uint32_t RESP_N = 1;   // count in RWAIT  -> RVALID at GNT+1+RESP_N (=GNT+2)
 
   // scratch for the functional work
   tlm::tlm_generic_payload* trans;
@@ -106,6 +106,9 @@ SC_MODULE(CacheMemoryController)
     SC_METHOD(mem_ready_comb);
     sensitive << obi_packet_req_i << st << cnt;
 
+    SC_METHOD(mem_resp_comb);
+    sensitive << st << cnt;
+
     SC_METHOD(mem_seq);
     sensitive << clk_i.pos();
   }
@@ -128,13 +131,23 @@ SC_MODULE(CacheMemoryController)
     mem_ready_o.write(ready);
   }
 
-  // always_ff: grant + response FSM.
+  // always_comb: RVALID/RDATA decoded from the FSM state (symmetric with gnt).
+  // RVALID is high for the single RWAIT cycle where cnt reaches RESP_N, i.e. at
+  // GNT+1+RESP_N. Being combinational (not registered) keeps the minimum response
+  // latency at GNT+1, which a user can select with RESP_N=0.
+  void mem_resp_comb() {
+    mem_rvalid_o.write(st.read() == S_RWAIT && cnt.read() >= RESP_N);
+    mem_rdata_o.write(resp_data);
+  }
+
+  // always_ff: grant + response-timing FSM.
   //   IDLE  : HIT/config -> grant now, do the work, go RWAIT;
   //           MISS/bypass -> go GWAIT and start the grant counter.
   //   GWAIT : count MISS_N cycles; when reached the grant happens (mem_ready is
   //           high this cycle) -> do the work, go RWAIT. Reading the counter here
   //           lands us on the SAME edge the DUT completes the handshake.
-  //   RWAIT : count RESP_N cycles, then pulse RVALID/RDATA for one cycle.
+  //   RWAIT : count RESP_N cycles, then return to IDLE (RVALID is decoded in
+  //           mem_resp_comb).
   void mem_seq() {
     ObiReq r = obi_packet_req_i.read();
     bool special = r.req && is_config_write(r.we, r.addr);
@@ -144,13 +157,11 @@ SC_MODULE(CacheMemoryController)
     switch (st.read()) {
 
       case S_IDLE:
-        mem_rvalid_o.write(false);
         if (r.req && immediate) { do_work(r); cnt.write(0); st.write(S_RWAIT); }
         else if (r.req)         { cnt.write(0); st.write(S_GWAIT); }
         break;
 
       case S_GWAIT:
-        mem_rvalid_o.write(false);
         if (!r.req)                                                         // illegal!
           SC_REPORT_ERROR("OBI External Memory SystemC",
                           "REQ deasserted before GNT during a miss wait: the OBI master must hold REQ until granted");
@@ -159,15 +170,8 @@ SC_MODULE(CacheMemoryController)
         break;
 
       case S_RWAIT:
-        if (cnt.read() >= RESP_N) {
-          mem_rvalid_o.write(true);
-          mem_rdata_o.write(resp_data);
-          cnt.write(0);
-          st.write(S_IDLE);
-        } else {
-          mem_rvalid_o.write(false);
-          cnt.write(cnt.read() + 1);
-        }
+        if (cnt.read() >= RESP_N) { cnt.write(0); st.write(S_IDLE); }
+        else                      { cnt.write(cnt.read() + 1); }
         break;
     }
   }
