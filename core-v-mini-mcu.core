@@ -419,14 +419,13 @@ targets:
         verilator_options:
           - '--sc'
           - '--trace'
-          - '--trace-fst'
           - '--trace-structs'
           - '--trace-params'
           - '--trace-max-array 1024'
           - '--x-assign unique'
           - '--x-initial unique'
           - '--exe tb_sc_top.cpp'
-          - '-CFLAGS "-Wall -fpermissive"'
+          - '-CFLAGS "-Wall -std=c++14 -fpermissive"'
           - '-LDFLAGS "-pthread -lutil -lelf"'
           - "-Wall"
 
