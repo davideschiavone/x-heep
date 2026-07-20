@@ -372,7 +372,7 @@ test:
 	$(RM) test/*.log
 	$(PYTHON) test/test_apps/test_apps.py $(TEST_FLAGS) 2>&1 | tee test/test_apps/test_apps.log
 	@echo "You can also find the output in test/test_apps/test_apps.log"
-	$(PYTHON) test/test_x_heep_gen/test_peripherals.py
+	PYTHONPATH="$(CURDIR)/hw/vendor/xheep/dma/python:$$PYTHONPATH" $(PYTHON) test/test_x_heep_gen/test_peripherals.py
 	@echo "You can also find the peripheral test outputs in test/test_x_heep_gen/outputs"
 
 ## Compares two mcu-gen runs and lists the differences in the generated files. 
