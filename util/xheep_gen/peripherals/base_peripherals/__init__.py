@@ -1,6 +1,9 @@
 # base_peripherals/__init__.py
 import pkgutil
 import importlib
+import sys
+
+from DMA import DMA
 
 for _, module_name, _ in pkgutil.iter_modules(__path__, prefix=__name__ + "."):
     module = importlib.import_module(module_name)

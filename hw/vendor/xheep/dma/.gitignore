@@ -1,6 +1,7 @@
 # Automatically generated files
 data/dma.hjson
 data/dma_conf.svh
+rtl/dma_pkg.sv
 rtl/dma_reg_pkg.sv
 rtl/dma_reg_top.sv
 sw/dma_regs.h

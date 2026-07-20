@@ -1,6 +1,6 @@
 REGTOOL ?= ../../vendor/pulp_platform/register_interface/vendor/lowrisc_opentitan/util/regtool.py
 NAME ?= $(notdir $(CURDIR))
-CFG = data/$(NAME).hjson 
+CFG = data/$(NAME).hjson
 SW = ../../../sw/device/lib/drivers
 
 RTL_REG_DEFINES = rtl/$(NAME)_reg_pkg.sv rtl/$(NAME)_reg_top.sv
@@ -14,3 +14,7 @@ $(RTL_REG_DEFINES): $(CFG)
 
 $(CDEFINES): $(CFG)
 	$(REGTOOL) --cdefines -o $@ $<
+
+.PHONY: vendor
+vendor:
+	python3 util/vendor.py -Uv python/vendor/peripherals.vendor.hjson

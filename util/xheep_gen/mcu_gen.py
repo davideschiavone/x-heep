@@ -147,6 +147,7 @@ def generate_xheep(args):
 
     kwargs = {
         "xheep": xheep,
+        "dma": xheep.get_base_peripheral_domain().get_dma(),
         "debug_start_address": debug_start_address,
         "debug_size_address": debug_size_address,
         "has_spi_slave": has_spi_slave,
