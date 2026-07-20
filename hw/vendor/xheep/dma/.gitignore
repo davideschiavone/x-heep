@@ -7,3 +7,6 @@ rtl/dma_reg_top.sv
 sw/dma_regs.h
 sw/dma_structs.h
 docs/dma_regs.md
+
+# Vendored dependencies
+python/vendor/
