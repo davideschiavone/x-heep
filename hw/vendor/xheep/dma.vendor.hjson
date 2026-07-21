@@ -20,7 +20,7 @@
     "util/vendor.py",                     # local copy of the vendor tool
     "python/dma/__init__.py",
     "python/vendor/__init__.py",
-    "python/dma/dma_gen.py",              # local copy of the dma_gen tool
+    "python/dma_gen.py",              # local copy of the dma_gen tool
     "Makefile",
     "dma_example.hjson",
   ]
