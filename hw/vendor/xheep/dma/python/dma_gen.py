@@ -9,17 +9,23 @@ from mako.template import Template
 from DMA import DMA
 
 
+def _to_int(value, default=0):
+    if isinstance(value, str):
+        return int(value, 0)
+    return int(value) if value is not None else default
+
+
 def create_dma_from_hjson(config_path):
     with open(config_path) as f:
         config = hjson.load(f)
 
     dma_cfg = config.get('dma', config)
 
-    ch_length = int(dma_cfg.get('ch_length', '0x100'), 16)
-    num_channels = int(dma_cfg.get('num_channels', '0x4'), 16)
-    num_master_ports = int(dma_cfg.get('num_master_ports', '0x2'), 16)
-    num_channels_per_master_port = int(dma_cfg.get('num_channels_per_master_port', '0x2'), 16)
-    fifo_depth = int(dma_cfg.get('fifo_depth', '0x4'), 16)
+    ch_length = _to_int(dma_cfg.get('ch_length'), 0x100)
+    num_channels = _to_int(dma_cfg.get('num_channels'), 0x4)
+    num_master_ports = _to_int(dma_cfg.get('num_master_ports'), 0x2)
+    num_channels_per_master_port = _to_int(dma_cfg.get('num_channels_per_master_port'), 0x2)
+    fifo_depth = _to_int(dma_cfg.get('fifo_depth'), 0x4)
     addr_mode = dma_cfg.get('addr_mode_en', 'yes')
     subaddr_mode = dma_cfg.get('subaddr_mode_en', 'yes')
     hw_fifo_mode = dma_cfg.get('hw_fifo_mode_en', 'yes')
@@ -46,7 +52,7 @@ def render_templates(dma_obj, template_dirs, output_dir):
     for tdir in template_dirs:
         for tpl_path in Path(tdir).glob("*.tpl"):
             template = Template(filename=str(tpl_path))
-            out_path = Path(output_dir) / tpl_path.relative_to(tdir.parent.parent)
+            out_path = Path(output_dir) / tpl_path.relative_to(tdir.parent)
             out_path = out_path.with_suffix('')
             out_path.parent.mkdir(parents=True, exist_ok=True)
             code = template.render_unicode(dma=dma_obj, strict_undefined=True)
