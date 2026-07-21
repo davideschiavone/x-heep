@@ -1,7 +1,6 @@
 # base_peripherals/__init__.py
 import pkgutil
 import importlib
-import sys
 
 from DMA import DMA
 
