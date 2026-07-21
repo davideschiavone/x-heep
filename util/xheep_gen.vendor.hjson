@@ -7,7 +7,7 @@
 
   upstream: {
     url: "https://github.com/x-heep/xheep_gen.git",
-    rev: "df63eae869aa7b0fee98fe95954e8941bc385c16",
+    rev: "b062d385719debbeb51b8b379c6a403b1e490325",
   },
 
   exclude_from_upstream: [

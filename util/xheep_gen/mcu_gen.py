@@ -126,7 +126,6 @@ def generate_xheep(args):
         else 0x01000000
     )
 
-
     stack_size = string2int(config["linker_script"]["stack_size"])
     heap_size = string2int(config["linker_script"]["heap_size"])
 
