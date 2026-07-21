@@ -20,7 +20,11 @@ module dma_subsystem
     parameter type fifo_resp_t = logic,
     parameter type fifo_req_t = logic,
     parameter int unsigned GLOBAL_SLOT_NUM = 0,
-    parameter int unsigned EXT_SLOT_NUM = 0
+    parameter int unsigned EXT_SLOT_NUM = 0,
+    parameter bit DMA_ADDR_MODE_EN = 1'b0,
+    parameter bit DMA_ZERO_PADDING_EN = 1'b0,
+    parameter bit DMA_HW_FIFO_MODE_EN = 1'b0,
+    parameter bit DMA_SUBADDR_MODE_EN = 1'b0
 ) (
     input logic clk_i,
     input logic rst_ni,
@@ -101,7 +105,11 @@ module dma_subsystem
           .fifo_req_t(fifo_req_t),
           .SLOT_NUM(GLOBAL_SLOT_NUM + 2),
           .FIFO_DEPTH(DMA_FIFO_DEPTH),
-          .RVALID_FIFO_DEPTH(RVALID_FIFO_DEPTH)
+          .RVALID_FIFO_DEPTH(RVALID_FIFO_DEPTH),
+          .DMA_ADDR_MODE_EN(DMA_ADDR_MODE_EN),
+          .DMA_ZERO_PADDING_EN(DMA_ZERO_PADDING_EN),
+          .DMA_HW_FIFO_MODE_EN(DMA_HW_FIFO_MODE_EN),
+          .DMA_SUBADDR_MODE_EN(DMA_SUBADDR_MODE_EN)
       ) dma_i (
           .clk_i,
           .rst_ni,

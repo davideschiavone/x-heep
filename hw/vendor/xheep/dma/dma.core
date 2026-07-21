@@ -27,12 +27,6 @@ filesets:
     - rtl/dma_subsystem/dma_NtoM_xbar.sv
     file_type: systemVerilogSource
   
-  headers:
-    files:
-    - data/dma_conf.svh: { is_include_file: true }
-    file_type: systemVerilogSource
-
-
   files_verilator_waiver:
     files:
       - dma.vlt
@@ -51,9 +45,8 @@ generate:
 
 targets:
   default:
-    filesets: 
+    filesets:
     - files_rtl
-    - headers
     - tool_verilator ? (files_verilator_waiver)
     generate:
     - dma
