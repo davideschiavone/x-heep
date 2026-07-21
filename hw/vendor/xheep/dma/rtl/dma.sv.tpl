@@ -6,8 +6,12 @@
  * Info: Direct Memory Access (DMA) channel module.
  */
 
-module dma
-  import dma_reg_pkg::*;
+<%
+  prefix = dma.get_suffix() + "_" if dma.get_suffix() else ""
+%>
+
+module ${prefix}dma
+  import ${prefix}dma_reg_pkg::*;
 #(
     parameter int FIFO_DEPTH = 4,
     parameter int RVALID_FIFO_DEPTH = 1,
@@ -52,7 +56,7 @@ module dma
     output logic dma_done_o
 );
 
-  `include "dma_conf.svh"
+  `include "${prefix}dma_conf.svh"
 
   /*_________________________________________________________________________________________________________________________________ */
 
@@ -183,7 +187,7 @@ module dma
 `endif
 
   /* Registers */
-  dma_reg_top #(
+  ${prefix}dma_reg_top #(
       .reg_req_t(reg_req_t),
       .reg_rsp_t(reg_rsp_t)
   ) dma_reg_top_i (
@@ -199,7 +203,7 @@ module dma
   assign dma_ready_o = hw2reg.status.ready.d;
 
   /* Buffer unit */
-  dma_buffer_unit #(
+  ${prefix}dma_buffer_unit #(
       .FIFO_DEPTH(FIFO_DEPTH),
       .fifo_req_t(fifo_req_t),
       .fifo_resp_t(fifo_resp_t)
@@ -224,7 +228,7 @@ module dma
   );
 
   /* Read unit */
-  dma_read_unit #(
+  ${prefix}dma_read_unit #(
       .RVALID_FIFO_DEPTH(RVALID_FIFO_DEPTH)
   ) dma_read_unit_i (
       .clk_i(clk_cg),
@@ -258,7 +262,7 @@ module dma
 
   /* Read address unit */
 `ifdef ADDR_MODE_EN
-  dma_read_addr_unit dma_read_addr_unit_i (
+  ${prefix}dma_read_addr_unit dma_read_addr_unit_i (
       .clk_i(clk_cg),
       .rst_ni,
 
@@ -286,7 +290,7 @@ module dma
 
   /* DMA processing unit */
 `ifdef ZERO_PADDING_EN
-  dma_processing_unit dma_processing_unit_i (
+  ${prefix}dma_processing_unit dma_processing_unit_i (
       .clk_i(clk_cg),
       .rst_ni,
 
@@ -331,7 +335,7 @@ module dma
 
 
   /* Write unit */
-  dma_write_unit dma_write_unit_i (
+  ${prefix}dma_write_unit dma_write_unit_i (
       .clk_i(clk_cg),
       .rst_ni,
 
@@ -611,4 +615,4 @@ module dma
   //      Or do we need only the window donw signal?
   assign window_event = |reg2hw.window_size.q & data_out_gnt & (window_counter == {19'h0, reg2hw.window_size.q});
 
-endmodule : dma
+endmodule : ${prefix}dma

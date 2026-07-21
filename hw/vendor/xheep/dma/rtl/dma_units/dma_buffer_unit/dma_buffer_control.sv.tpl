@@ -11,8 +11,12 @@
  *       
  */
 
-module dma_buffer_control
-  import dma_reg_pkg::*;
+<%
+  prefix = dma.get_suffix() + "_" if dma.get_suffix() else ""
+%>
+
+module ${prefix}dma_buffer_control
+  import ${prefix}dma_reg_pkg::*;
 #(
 ) (
     input logic clk_i,
@@ -31,8 +35,8 @@ module dma_buffer_control
 );
 
 
-  import dma_pkg::*;
-  `include "dma_conf.svh"
+  import ${prefix}dma_pkg::*;
+  `include "${prefix}dma_conf.svh"
 
 dma_reg2hw_t reg2hw;
 
@@ -46,7 +50,7 @@ dma_reg2hw_t reg2hw;
   logic [31:0] read_buffer_output;
   logic [31:0] read_fifo_output;
 
-  dma_pkg::dma_data_type_t src_data_type;
+  ${prefix}dma_pkg::dma_data_type_t src_data_type;
 
   /* This logic enables Subaddressing Mode, when enabled */
 `ifdef SUBADDR_MODE_EN

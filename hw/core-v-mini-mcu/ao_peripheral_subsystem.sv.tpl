@@ -4,6 +4,10 @@
 
 <%
   base_peripheral_domain = xheep.get_base_peripheral_domain()
+  dma_prefix = ""
+  if base_peripheral_domain.contains_peripheral('dma'):
+    dma_sfx = base_peripheral_domain.get_dma().get_suffix()
+    dma_prefix = dma_sfx + "_" if dma_sfx else ""
 %>
 
 
@@ -164,7 +168,7 @@ module ao_peripheral_subsystem
   obi_rsp_t slave_fifoout_resp;
   reg_req_t perconv2regdemux_req;
   reg_rsp_t regdemux2perconv_resp;
-  dma_reg_pkg::dma_hw2reg_t [core_v_mini_mcu_pkg::DMA_CH_NUM-1:0] external_dma_hw2reg;
+  ${dma_prefix}dma_reg_pkg::dma_hw2reg_t [core_v_mini_mcu_pkg::DMA_CH_NUM-1:0] external_dma_hw2reg;
   logic [core_v_mini_mcu_pkg::DMA_CH_NUM-1:0] dma_ready;
 
   /*_________________________________________________________________________________________________________________________________ */
@@ -445,8 +449,7 @@ module ao_peripheral_subsystem
   );
 
 % if base_peripheral_domain.contains_peripheral('dma') and xheep.get_base_peripheral_domain().get_dma().get_is_included():
-
-  dma_subsystem #(
+  ${dma_prefix}dma_subsystem #(
       .reg_req_t  (reg_req_t),
       .reg_rsp_t  (reg_rsp_t),
       .obi_req_t  (obi_req_t),

@@ -123,6 +123,7 @@ def _create_dma_peripheral(peripheral_config, offset, length):
     - num_master_ports: Number of master ports (hex string)
     - num_channels_per_master_port: Channels per master port (hex string)
     - fifo_depth: Depth of FIFO buffer (hex string)
+    - suffix: Optional suffix for multi-DMA support (default: "")
 
     When DMA is not included (is_included="no"), minimal default values
     are used to ensure the system can still be generated with a stubbed
@@ -165,6 +166,7 @@ def _create_dma_peripheral(peripheral_config, offset, length):
             peripheral_config["num_channels_per_master_port"], 16
         )
         fifo_depth = int(peripheral_config["fifo_depth"], 16)
+        suffix = peripheral_config.get("suffix", "")
     else:
         # Use minimal defaults when DMA is not included
         addr_mode_en = "no"
@@ -176,6 +178,7 @@ def _create_dma_peripheral(peripheral_config, offset, length):
         num_master_ports = int("0x1", 16)
         num_channels_per_master_port = int("0x1", 16)
         fifo_depth = int("0x4", 16)
+        suffix = ""
 
     return DMA(
         is_included=dma_is_included,
@@ -190,6 +193,7 @@ def _create_dma_peripheral(peripheral_config, offset, length):
         subaddr_mode=subaddr_mode_en,
         hw_fifo_mode=hw_fifo_mode_en,
         zero_padding=zero_padding_en,
+        suffix=suffix,
     )
 
 

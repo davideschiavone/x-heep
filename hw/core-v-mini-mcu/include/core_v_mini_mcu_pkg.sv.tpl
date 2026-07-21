@@ -19,13 +19,14 @@
   dma = base_peripheral_domain.get_dma()
   external_domains = base_peripheral_domain.get_power_manager().get_external_domains()
   memory_ss = xheep.memory_ss()
+  dma_prefix = dma.get_suffix() + "_" if dma.get_suffix() else ""
 %>
 
 package core_v_mini_mcu_pkg;
 
   import addr_map_rule_pkg::*;
   import power_manager_pkg::*;
-  import dma_pkg::*;
+  import ${dma_prefix}dma_pkg::*;
 
   typedef enum logic [1:0] {
     cv32e40p,

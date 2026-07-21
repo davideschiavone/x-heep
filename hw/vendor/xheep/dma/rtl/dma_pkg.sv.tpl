@@ -12,9 +12,10 @@
   ch_length = dma.get_ch_length()
   fifo_depth = dma.get_fifo_depth()
   channels_per_master = dma.get_num_channels_per_master_port()
+  prefix = dma.get_suffix() + "_" if dma.get_suffix() else ""
 %>
 
-package dma_pkg;
+package ${prefix}dma_pkg;
 
   import addr_map_rule_pkg::*;
 

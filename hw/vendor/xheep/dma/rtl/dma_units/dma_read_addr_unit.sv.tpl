@@ -9,8 +9,12 @@
  * Info: Reading FSM for DMA channel in address mode, controls the input FIFO.
  */
 
-module dma_read_addr_unit
-  import dma_reg_pkg::*;
+<%
+  prefix = dma.get_suffix() + "_" if dma.get_suffix() else ""
+%>
+
+module ${prefix}dma_read_addr_unit
+  import ${prefix}dma_reg_pkg::*;
 #(
 ) (
     input logic clk_i,
@@ -36,8 +40,8 @@ module dma_read_addr_unit
 
   /* Parameter definition */
 
-  import dma_reg_pkg::*;
-  `include "dma_conf.svh"
+  import ${prefix}dma_reg_pkg::*;
+  `include "${prefix}dma_conf.svh"
 
   /*_________________________________________________________________________________________________________________________________ */
 

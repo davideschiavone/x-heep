@@ -9,9 +9,13 @@
  * Info: DMA subsystem, it instantiates the DMA channels and manages the data transfers.
  */
 
-module dma_subsystem
-  import dma_reg_pkg::*;
-  import dma_pkg::*;
+<%
+  prefix = dma.get_suffix() + "_" if dma.get_suffix() else ""
+%>
+
+module ${prefix}dma_subsystem
+  import ${prefix}dma_reg_pkg::*;
+  import ${prefix}dma_pkg::*;
 #(
     parameter type reg_req_t = logic,
     parameter type reg_rsp_t = logic,
@@ -47,7 +51,7 @@ module dma_subsystem
     input logic [DMA_CH_NUM-1:0] ext_dma_stop_i,
     input logic [DMA_CH_NUM-1:0] hw_fifo_done_i,
 
-    input dma_reg_pkg::dma_hw2reg_t [DMA_CH_NUM-1:0] external_hw2reg_i,
+    input ${prefix}dma_reg_pkg::dma_hw2reg_t [DMA_CH_NUM-1:0] external_hw2reg_i,
 
     output logic dma_done_intr_o,
     output logic dma_window_intr_o,
@@ -92,7 +96,7 @@ module dma_subsystem
   /* DMA modules */
   generate
     for (genvar i = 0; i < DMA_CH_NUM; i++) begin : dma_i_gen
-      dma #(
+      ${prefix}dma #(
           .reg_req_t(reg_req_t),
           .reg_rsp_t(reg_rsp_t),
           .obi_req_t(obi_req_t),
@@ -143,7 +147,7 @@ module dma_subsystem
       if (DMA_NUM_MASTER_PORTS > 1 && DMA_NUM_MASTER_PORTS != DMA_CH_NUM) begin : xbar_n_to_m_gen
 
         /* Read, write & address mode operations xbar*/
-        dma_NtoM_xbar #(
+        ${prefix}dma_NtoM_xbar #(
             .XBAR_NMASTER(DMA_CH_NUM),
             .XBAR_MSLAVE (DMA_NUM_MASTER_PORTS)
         ) xbar_read_i (
@@ -155,7 +159,7 @@ module dma_subsystem
             .slave_resp_i(dma_read_resp_i)
         );
 
-        dma_NtoM_xbar #(
+        ${prefix}dma_NtoM_xbar #(
             .XBAR_NMASTER(DMA_CH_NUM),
             .XBAR_MSLAVE (DMA_NUM_MASTER_PORTS)
         ) xbar_write_i (
@@ -167,7 +171,7 @@ module dma_subsystem
             .slave_resp_i(dma_write_resp_i)
         );
 
-        dma_NtoM_xbar #(
+        ${prefix}dma_NtoM_xbar #(
             .XBAR_NMASTER(DMA_CH_NUM),
             .XBAR_MSLAVE (DMA_NUM_MASTER_PORTS)
         ) xbar_address_i (

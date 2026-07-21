@@ -9,8 +9,12 @@
  * Info: Processing unit for DMA channel.
  */
 
-module dma_processing_unit
-  import dma_reg_pkg::*;
+<%
+  prefix = dma.get_suffix() + "_" if dma.get_suffix() else ""
+%>
+
+module ${prefix}dma_processing_unit
+  import ${prefix}dma_reg_pkg::*;
 #(
 ) (
     input logic clk_i,
@@ -38,8 +42,8 @@ module dma_processing_unit
 
   /* Parameter definition */
 
-  import dma_reg_pkg::*;
-  `include "dma_conf.svh"
+  import ${prefix}dma_reg_pkg::*;
+  `include "${prefix}dma_conf.svh"
 
   /*_________________________________________________________________________________________________________________________________ */
 

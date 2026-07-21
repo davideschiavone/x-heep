@@ -9,8 +9,12 @@
  * Info: Write unit for DMA channel, process data coming out of the output FIFO. Performs the sign extension if needed.
  */
 
-module dma_write_unit
-  import dma_reg_pkg::*;
+<%
+  prefix = dma.get_suffix() + "_" if dma.get_suffix() else ""
+%>
+
+module ${prefix}dma_write_unit
+  import ${prefix}dma_reg_pkg::*;
 #(
 ) (
     input logic clk_i,
@@ -47,9 +51,9 @@ module dma_write_unit
 
   /* Parameter definition */
 
-  import dma_reg_pkg::*;
-  import dma_pkg::*;
-  `include "dma_conf.svh"
+  import ${prefix}dma_reg_pkg::*;
+  import ${prefix}dma_pkg::*;
+  `include "${prefix}dma_conf.svh"
 
   /*_________________________________________________________________________________________________________________________________ */
 
@@ -70,7 +74,7 @@ module dma_write_unit
   }
       dma_write_unit_state, dma_write_unit_n_state;
 
-  dma_pkg::dma_data_type_t dst_data_type;
+  ${prefix}dma_pkg::dma_data_type_t dst_data_type;
 
   logic data_req_cond, data_req_cond_preobi;
   logic dma_done_override;
@@ -100,9 +104,9 @@ module dma_write_unit
   logic read_addr_buffer_empty;
   logic [31:0] write_buffer_data;
 
-  dma_pkg::dma_obi_state_type_t obi_data_req_q, obi_data_req_d;
+  ${prefix}dma_pkg::dma_obi_state_type_t obi_data_req_q, obi_data_req_d;
 
-  dma_pkg::dma_wait_for_state_type_t wait_for_tx_state_q, wait_for_tx_state_d;
+  ${prefix}dma_pkg::dma_wait_for_state_type_t wait_for_tx_state_q, wait_for_tx_state_d;
 
   logic [7:0] slot_wait_counter_d, slot_wait_counter_q;
 

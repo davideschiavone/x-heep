@@ -14,17 +14,18 @@
     dma_zero_padding = dma.get_zero_padding()
     dma_subaddr_mode = dma.get_subaddr_mode()
     dma_hw_fifo_mode = dma.get_hw_fifo_mode()
+    defs_prefix = dma.get_suffix().upper() + "_" if dma.get_suffix() else ""
 %>
 
 % if dma_addr_mode:
-`define ADDR_MODE_EN
+`define ${defs_prefix}ADDR_MODE_EN
 % endif
 % if dma_zero_padding:
-`define ZERO_PADDING_EN
+`define ${defs_prefix}ZERO_PADDING_EN
 % endif
 % if dma_subaddr_mode:
-`define SUBADDR_MODE_EN
+`define ${defs_prefix}SUBADDR_MODE_EN
 % endif
 % if dma_hw_fifo_mode:
-`define HW_FIFO_MODE_EN
+`define ${defs_prefix}HW_FIFO_MODE_EN
 % endif

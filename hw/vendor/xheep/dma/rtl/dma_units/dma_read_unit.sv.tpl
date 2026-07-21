@@ -9,8 +9,12 @@
  * Info: Read unit for the DMA channel, controls the input FIFO.
  */
 
-module dma_read_unit
-  import dma_reg_pkg::*;
+<%
+  prefix = dma.get_suffix() + "_" if dma.get_suffix() else ""
+%>
+
+module ${prefix}dma_read_unit
+  import ${prefix}dma_reg_pkg::*;
 #(
     parameter int RVALID_FIFO_DEPTH = 1
 ) (
@@ -48,10 +52,10 @@ module dma_read_unit
 
   /* Parameter definition */
 
-  import dma_reg_pkg::*;
-  import dma_pkg::*;
+  import ${prefix}dma_reg_pkg::*;
+  import ${prefix}dma_pkg::*;
 
-  `include "dma_conf.svh"
+  `include "${prefix}dma_conf.svh"
   localparam int unsigned LastFifoUsage = RVALID_FIFO_DEPTH - 1;
   localparam int unsigned AddrFifoDepth = (RVALID_FIFO_DEPTH > 1) ? $clog2(RVALID_FIFO_DEPTH) : 1;
 
@@ -113,13 +117,13 @@ module dma_read_unit
   /* FIFO signals */
   logic [31:0] read_buffer_input;
 
-  dma_pkg::dma_data_type_t src_data_type;
+  ${prefix}dma_pkg::dma_data_type_t src_data_type;
 
   logic sign_ext;
 
-  dma_pkg::dma_obi_state_type_t obi_data_req_q, obi_data_req_d;
+  ${prefix}dma_pkg::dma_obi_state_type_t obi_data_req_q, obi_data_req_d;
 
-  dma_pkg::dma_wait_for_state_type_t wait_for_rx_state_q, wait_for_rx_state_d;
+  ${prefix}dma_pkg::dma_wait_for_state_type_t wait_for_rx_state_q, wait_for_rx_state_d;
 
   logic [7:0] slot_wait_counter_d, slot_wait_counter_q;
 

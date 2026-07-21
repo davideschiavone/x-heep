@@ -18,7 +18,11 @@
  *       reducing the need for additional arbitration logic.
  */
 
-module dma_NtoM_xbar #(
+<%
+  prefix = dma.get_suffix() + "_" if dma.get_suffix() else ""
+%>
+
+module ${prefix}dma_NtoM_xbar #(
     parameter int unsigned XBAR_NMASTER = 4,
     parameter int unsigned XBAR_MSLAVE = 2,
     // OBI data types
@@ -36,7 +40,7 @@ module dma_NtoM_xbar #(
     output obi_req_t [XBAR_MSLAVE-1:0] slave_req_o,
     input  obi_rsp_t [XBAR_MSLAVE-1:0] slave_resp_i
 );
-  import dma_pkg::*;
+  import ${prefix}dma_pkg::*;
 
   /* Generation of the crossbars */
   generate

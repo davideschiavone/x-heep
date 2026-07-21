@@ -8,8 +8,12 @@
  * Info: This module instantiates the DMA FIFOs and the logic that drives them. 
  */
 
-module dma_buffer_unit
-  import dma_reg_pkg::*;
+<%
+  prefix = dma.get_suffix() + "_" if dma.get_suffix() else ""
+%>
+
+module ${prefix}dma_buffer_unit
+  import ${prefix}dma_reg_pkg::*;
 #(
     parameter int FIFO_DEPTH = 4,
     // OBI FIFO data types
@@ -34,7 +38,7 @@ module dma_buffer_unit
     input  fifo_resp_t hw_fifo_resp_i,
     output fifo_req_t  hw_fifo_req_o
 );
-  `include "dma_conf.svh"
+  `include "${prefix}dma_conf.svh"
 
   logic hw_fifo_mode;
 
@@ -48,7 +52,7 @@ module dma_buffer_unit
   logic [31:0] read_fifo_output;
   logic [31:0] read_buffer_output;
 
-  dma_buffer_fifos #(
+  ${prefix}dma_buffer_fifos #(
       .FIFO_DEPTH(FIFO_DEPTH),
       .fifo_req_t(fifo_req_t),
       .fifo_resp_t(fifo_resp_t)
@@ -72,7 +76,7 @@ module dma_buffer_unit
       .hw_fifo_req_o
   );
 
-  dma_buffer_control dma_buffer_control_i (
+  ${prefix}dma_buffer_control dma_buffer_control_i (
       .clk_i,
       .rst_ni,
       .reg2hw_i,

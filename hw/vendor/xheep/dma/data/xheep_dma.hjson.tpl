@@ -7,9 +7,10 @@
   dma_subaddr_mode = dma.get_subaddr_mode() == 1
   dma_hw_fifo_mode = dma.get_hw_fifo_mode() == 1
   dma_zero_padding = dma.get_zero_padding() == 1
+  blk_name = dma.get_suffix() + "_dma" if dma.get_suffix() else "dma"
 %>
 
-{ name: "dma"
+{ name: "${blk_name}"
   clock_primary: "clk_i"
   bus_interfaces: [
     { protocol: "reg_iface", direction: "device" }

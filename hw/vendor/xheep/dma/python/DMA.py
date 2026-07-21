@@ -15,6 +15,7 @@ class DMA(BasePeripheral):
     :param int num_channels: The number of channels in the DMA.
     :param int num_master_ports: The number of master ports in the DMA.
     :param int num_channels_per_master_port: The number of channels per master port in the DMA.
+    :param str suffix: Optional suffix to append to module/package names for multi-DMA support.
     """
 
     _name = "dma"
@@ -33,6 +34,7 @@ class DMA(BasePeripheral):
         hw_fifo_mode: str = "yes",
         zero_padding: str = "yes",
         is_included: str = "yes",
+        suffix: str = "",
     ):
         """
         Initialize the DMA peripheral.
@@ -43,6 +45,7 @@ class DMA(BasePeripheral):
         :param int num_channels: The number of channels in the DMA.
         :param int num_master_ports: The number of master ports in the DMA.
         :param int num_channels_per_master_port: The number of channels per master port in the DMA.
+        :param str suffix: Optional suffix to append to module/package names for multi-DMA support.
         """
         super().__init__(address, length)
         self._ch_length = ch_length
@@ -55,12 +58,25 @@ class DMA(BasePeripheral):
         self._hw_fifo_mode = 0 if hw_fifo_mode == "no" else 1
         self._zero_padding = 0 if zero_padding == "no" else 1
         self._is_included = 0 if is_included == "no" else 1
+        self._suffix = suffix
 
     def get_is_included(self):
         """
         Get whether the DMA is included.
         """
         return self._is_included
+
+    def get_suffix(self):
+        """
+        Get the suffix for multi-DMA support.
+        """
+        return self._suffix
+
+    def set_suffix(self, value: str):
+        """
+        Set the suffix for multi-DMA support.
+        """
+        self._suffix = value
 
     def set_ch_length(self, value: int):
         """

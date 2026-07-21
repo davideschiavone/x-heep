@@ -12,7 +12,11 @@
  *       will behave as usual, as well as the processing unit.
  */
 
-module dma_buffer_fifos #(
+<%
+  prefix = dma.get_suffix() + "_" if dma.get_suffix() else ""
+%>
+
+module ${prefix}dma_buffer_fifos #(
     parameter int FIFO_DEPTH = 4,
     // OBI FIFO data types
     parameter type fifo_req_t = logic,
@@ -36,7 +40,7 @@ module dma_buffer_fifos #(
     input  fifo_resp_t hw_fifo_resp_i,
     output fifo_req_t  hw_fifo_req_o
 );
-  `include "dma_conf.svh"
+  `include "${prefix}dma_conf.svh"
   localparam int unsigned LastFifoUsage = FIFO_DEPTH - 1;
   localparam int unsigned AddrFifoDepth = (FIFO_DEPTH > 1) ? $clog2(FIFO_DEPTH) : 1;
 
