@@ -191,17 +191,35 @@ module dma
   always_comb begin
     reg_req_param = reg_req_i;
     reg_rsp_o     = reg_rsp_param;
-    if (reg_req_i.valid && (
-        (DMA_ADDR_MODE_EN == 1'b0 && reg_req_i.addr[dma_reg_pkg::BlockAw-1:0] == DMA_ADDR_PTR_OFFSET) ||
-        (DMA_ZERO_PADDING_EN == 1'b0 && reg_req_i.addr[dma_reg_pkg::BlockAw-1:0] == DMA_PAD_TOP_OFFSET) ||
-        (DMA_ZERO_PADDING_EN == 1'b0 && reg_req_i.addr[dma_reg_pkg::BlockAw-1:0] == DMA_PAD_BOTTOM_OFFSET) ||
-        (DMA_ZERO_PADDING_EN == 1'b0 && reg_req_i.addr[dma_reg_pkg::BlockAw-1:0] == DMA_PAD_RIGHT_OFFSET) ||
-        (DMA_ZERO_PADDING_EN == 1'b0 && reg_req_i.addr[dma_reg_pkg::BlockAw-1:0] == DMA_PAD_LEFT_OFFSET) ||
-        (DMA_HW_FIFO_MODE_EN == 1'b0 && reg_req_i.addr[dma_reg_pkg::BlockAw-1:0] == DMA_HW_FIFO_EN_OFFSET))) begin
-      reg_req_param = 'b0;
-      reg_rsp_param.error = 1'b1;
-      reg_rsp_param.ready = 1'b1;
-      reg_rsp_param.rdata = 'b0;
+    if (reg_req_i.valid) begin
+      case (reg_req_i.addr[dma_reg_pkg::BlockAw-1:0])
+        DMA_ADDR_PTR_OFFSET: begin
+          if (DMA_ADDR_MODE_EN == 1'b0) begin
+            reg_req_param   = 'b0;
+            reg_rsp_o.error = 1'b1;
+            reg_rsp_o.ready = 1'b1;
+            reg_rsp_o.rdata = 'b0;
+          end
+        end
+        DMA_PAD_TOP_OFFSET, DMA_PAD_BOTTOM_OFFSET,
+        DMA_PAD_RIGHT_OFFSET, DMA_PAD_LEFT_OFFSET: begin
+          if (DMA_ZERO_PADDING_EN == 1'b0) begin
+            reg_req_param   = 'b0;
+            reg_rsp_o.error = 1'b1;
+            reg_rsp_o.ready = 1'b1;
+            reg_rsp_o.rdata = 'b0;
+          end
+        end
+        DMA_HW_FIFO_EN_OFFSET: begin
+          if (DMA_HW_FIFO_MODE_EN == 1'b0) begin
+            reg_req_param   = 'b0;
+            reg_rsp_o.error = 1'b1;
+            reg_rsp_o.ready = 1'b1;
+            reg_rsp_o.rdata = 'b0;
+          end
+        end
+        default: ;
+      endcase
     end
   end
 
