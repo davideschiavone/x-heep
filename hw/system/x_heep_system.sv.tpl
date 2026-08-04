@@ -56,7 +56,7 @@ module x_heep_system #(
     input  obi_rsp_t [core_v_mini_mcu_pkg::DMA_NUM_MASTER_PORTS-1:0] ext_dma_addr_resp_i,
 
     output fifo_req_t [core_v_mini_mcu_pkg::DMA_CH_NUM-1:0] hw_fifo_req_o,
-    input fifo_rsp_t [core_v_mini_mcu_pkg::DMA_CH_NUM-1:0] hw_fifo_resp_i,
+    input  fifo_rsp_t [core_v_mini_mcu_pkg::DMA_CH_NUM-1:0] hw_fifo_resp_i,
 
     input  reg_req_t [AO_SPC_NUM_RND:0] ext_ao_peripheral_req_i,
     output reg_rsp_t [AO_SPC_NUM_RND:0] ext_ao_peripheral_resp_o,
@@ -78,6 +78,12 @@ module x_heep_system #(
     output logic [EXT_DOMAINS_RND-1:0] external_subsystem_clkgate_en_no,
 
     output logic [31:0] exit_value_o,
+
+    % if user_peripheral_domain.contains_peripheral('serial_link_reg'):
+      //Serial Link
+      output obi_req_t serial_link_direct_write_req_o,   
+      input  obi_rsp_t serial_link_direct_write_resp_i,  
+    %endif
 
     input logic [core_v_mini_mcu_pkg::DMA_CH_NUM-1:0] ext_dma_slot_tx_i,
     input logic [core_v_mini_mcu_pkg::DMA_CH_NUM-1:0] ext_dma_slot_rx_i,
@@ -157,7 +163,7 @@ module x_heep_system #(
     .EXT_XBAR_NMASTER(EXT_XBAR_NMASTER),
     .AO_SPC_NUM(AO_SPC_NUM),
     .EXT_HARTS(EXT_HARTS)
-  ) core_v_mini_mcu_i (   
+  ) core_v_mini_mcu_i (
     // MCU pads
     .rst_ni(rst_ngen),
     % for pin in xheep.get_padring().get_connected_pins():
@@ -174,6 +180,10 @@ module x_heep_system #(
       % endif
     % endfor
 
+    % if user_peripheral_domain.contains_peripheral('serial_link_reg'):
+      .serial_link_direct_write_req_o,   
+      .serial_link_direct_write_resp_i,  
+    % endif
     .hart_id_i,
     .xheep_instance_id_i,
     .intr_vector_ext_i,

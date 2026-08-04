@@ -341,6 +341,7 @@ module core_v_mini_mcu #(
   obi_req_t [1:0] dma_addr_req;
   obi_rsp_t [1:0] dma_addr_resp;
 
+
   // ram signals
   obi_req_t [core_v_mini_mcu_pkg::NUM_BANKS-1:0] ram_slave_req;
   obi_rsp_t [core_v_mini_mcu_pkg::NUM_BANKS-1:0] ram_slave_resp;

@@ -7,6 +7,10 @@
 // Date: 19/05/2023
 // Description: external peripheral bus for X-HEEP testbench
 
+<%
+  user_peripheral_domain = xheep.get_user_peripheral_domain()
+%>
+
 module ext_bus #(
     parameter int unsigned EXT_XBAR_NMASTER = 1,
     parameter int unsigned EXT_XBAR_NSLAVE = 1,
@@ -92,6 +96,10 @@ module ext_bus #(
       assign master_req[core_v_mini_mcu_pkg::DMA_ADDR_P0_IDX+i*3]  = heep_dma_addr_req_i[i];
     end
   endgenerate
+
+  % if user_peripheral_domain.contains_peripheral('serial_link_reg'): 
+    assign master_req[core_v_mini_mcu_pkg::SL_DIRECT_WRITE_MASTER_IDX] = '0;
+  % endif
 
   generate
     for (genvar i = 0; i < EXT_XBAR_NMASTER; i++) begin : gen_ext_master_req_map
