@@ -7,10 +7,6 @@
 // contain all parameters required to configure X-HEEP.
 
 {
-    linker_script: {
-        stack_size: 0x800
-        heap_size: 0x800
-    }
 
     debug: {
         address: 0x10000000

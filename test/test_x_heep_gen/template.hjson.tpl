@@ -85,8 +85,8 @@
 
     // Memory Configuration
     linker_script: {
-        stack_size: "${stack_size}"
-        heap_size: "${heap_size}"
+        stack_size: "${format(xheep.stack_size(), 'X')}"
+        heap_size: "${format(xheep.heap_size(), 'X')}"
     }
 
     // Interrupt Configuration

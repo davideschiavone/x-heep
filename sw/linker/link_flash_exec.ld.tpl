@@ -22,9 +22,9 @@ SECTIONS {
     PROVIDE(__boot_address = 0x40000180);
 
     /* stack and heap related settings */
-    __stack_size = DEFINED(__stack_size) ? __stack_size : 0x${stack_size};
+    __stack_size = DEFINED(__stack_size) ? __stack_size : 0x${format(xheep.stack_size(), 'X')};
     PROVIDE(__stack_size = __stack_size);
-    __heap_size = DEFINED(__heap_size) ? __heap_size : 0x${heap_size};
+    __heap_size = DEFINED(__heap_size) ? __heap_size : 0x${format(xheep.heap_size(), 'X')};
 
     /* interrupt vectors */
     .vectors (ORIGIN(FLASH)):
