@@ -11,7 +11,6 @@ from peripherals.base_peripherals import (
     SOC_ctrl,
     Bootrom,
     SPI_flash,
-    SPI_memio,
     DMA,
     Power_manager,
     RV_timer_ao,
@@ -99,7 +98,6 @@ def config():
     base_peripheral_domain.add_peripheral(SOC_ctrl(0x00000000))
     base_peripheral_domain.add_peripheral(Bootrom(0x00010000))
     base_peripheral_domain.add_peripheral(SPI_flash(0x00020000, 0x00008000))
-    base_peripheral_domain.add_peripheral(SPI_memio(0x00028000, 0x00008000))
     base_peripheral_domain.add_peripheral(
         DMA(
             address=0x30000,

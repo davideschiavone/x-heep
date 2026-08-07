@@ -449,7 +449,6 @@ module core_v_mini_mcu #(
       .ao2spc_resp_o(ext_ao_peripheral_slave_resp_o),
       .xheep_instance_id_i,
       .boot_select_i,
-      .execute_from_flash_i,
       .exit_valid_o,
       .exit_value_o,
       .spimemio_req_i(flash_mem_slave_req),
