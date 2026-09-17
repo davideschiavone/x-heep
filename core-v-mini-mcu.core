@@ -392,6 +392,18 @@ targets:
           - '--trace-max-array 1024'
           - '--x-assign unique'
           - '--x-initial unique'
+          # Vitis HLS-generated RTL (e.g. hw/fpga/hls/vitis/dot_product) uses
+          # zero-time delay statements in a couple of small pipeline flow
+          # control modules, purely as a simulation-only race-avoidance
+          # trick with no real timing meaning. Verilator 5.x requires an
+          # explicit choice of how to handle any delay/event control it
+          # sees; --no-timing tells it to treat them as zero-time, which is
+          # exactly what they already are.
+          - '--no-timing'
+          # Direct, expected consequence of --no-timing above: Verilator
+          # notes (as a warning) every delay statement it's ignoring. Not
+          # actionable -- that's exactly what we asked it to do.
+          - '-Wno-STMTDLY'
           - '--exe tb_top.cpp'
           - '-CFLAGS "-Wall -fpermissive"'
           - '-LDFLAGS "-pthread -lutil -lelf"'

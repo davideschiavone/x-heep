@@ -5,3 +5,22 @@
 `verilator_config
 
 lint_off -rule PROCASSINIT -file "*tb/yosys_spiflash.sv" -match "Procedural assignment to declaration with initial value: '*'"
+
+// hw/vendor/pulp_platform/{axi,axi_obi,common_cells,tech_cells_generic}: the
+// dot-product accelerator's axi_to_obi/obi_to_axi bridges are the first
+// X-HEEP Verilator target to pull in the full PULP 'axi' package (rather
+// than just the pieces already exercised elsewhere), so this is the first
+// time Verilator 5's stricter checks run over most of it. None of this is
+// X-HEEP's own code to fix.
+lint_off -file "*/hw/vendor/pulp_platform/axi/*"
+lint_off -file "*/hw/vendor/pulp_platform/axi_obi/*"
+lint_off -file "*/hw/vendor/pulp_platform/common_cells/*"
+lint_off -file "*/hw/vendor/pulp_platform/tech_cells_generic/*"
+lint_off -file "*/hw/vendor/pulp_platform/obi/*"
+
+// UNOPTFLAT is treated as always-on unless explicitly named, even under a
+// bare file-wide lint_off above -- these are axi_to_obi's internal
+// read-memory arbitration (axi_to_detailed_mem_user / stream_to_mem),
+// flagged as a conservative false-positive combinational loop.
+lint_off -rule UNOPTFLAT -file "*/hw/vendor/pulp_platform/axi_obi/src/axi_to_detailed_mem_user.sv"
+lint_off -rule UNOPTFLAT -file "*/hw/vendor/pulp_platform/common_cells/src/stream_to_mem.sv"
