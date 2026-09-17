@@ -637,10 +637,16 @@ module testharness #(
       // bridged as an OBI slave, its two AXI4 read masters bridged as OBI
       // masters -- see hw/fpga/hls/vitis/dot_product/rtl/dot_product_xheep_wrapper.sv
       //
-      // Not present in the SIM_SYSTEMC build: that flow keeps EXT_XBAR_NSLAVE
-      // at its original size (see testharness_pkg.sv), which has no slot for
-      // this accelerator's CTRL port.
-`ifndef SIM_SYSTEMC
+      // Only built when the 'use_hls_example' FuseSoC flag is passed (see
+      // core-v-mini-mcu.core): that flag both defines USE_HLS_EXAMPLE here
+      // and gates the epfl:ip:dot_product dependency / the pre-build hook
+      // that runs Vitis HLS, so without it X-HEEP never needs Vitis HLS
+      // installed at all. Also not present in the SIM_SYSTEMC build: that
+      // flow keeps EXT_XBAR_NSLAVE at its original size (see
+      // testharness_pkg.sv), which has no slot for this accelerator's
+      // CTRL port.
+`ifdef USE_HLS_EXAMPLE
+  `ifndef SIM_SYSTEMC
       dot_product_xheep_wrapper dot_product_wrapper_i (
           .clk_i (clk_i),
           .rst_ni(rst_ni),
@@ -654,6 +660,10 @@ module testharness #(
           .gmem_b_obi_req_o(ext_master_req[testharness_pkg::EXT_MASTER9_IDX]),
           .gmem_b_obi_rsp_i(ext_master_resp[testharness_pkg::EXT_MASTER9_IDX])
       );
+  `else
+      assign ext_master_req[testharness_pkg::EXT_MASTER8_IDX] = '0;
+      assign ext_master_req[testharness_pkg::EXT_MASTER9_IDX] = '0;
+  `endif
 `else
       assign ext_master_req[testharness_pkg::EXT_MASTER8_IDX] = '0;
       assign ext_master_req[testharness_pkg::EXT_MASTER9_IDX] = '0;

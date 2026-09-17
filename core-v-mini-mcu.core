@@ -259,6 +259,16 @@ parameters:
     description: Turn off asserts for PULP common cells
     paramtype: vlogdefine
     default: false
+  USE_HLS_EXAMPLE:
+    datatype: bool
+    paramtype: vlogdefine
+    description: |
+      Include the Vitis HLS-generated dot_product example accelerator in
+      the testbench. Enable with `--flag use_hls_example`, which also
+      triggers the generate_hls_dot_product pre-build hook (runs Vitis
+      HLS) and pulls in epfl:ip:dot_product -- so without the flag,
+      building/simulating X-HEEP never requires Vitis HLS to be installed.
+    default: false
 
 scripts:
   # Build utils
@@ -282,6 +292,10 @@ scripts:
     cmd:
     - python
     - ../../../scripts/sim/vcs/patch_vcs_ams_Makefile.py
+  generate_hls_dot_product:
+    cmd:
+    - bash
+    - ../../../hw/fpga/hls/vitis/dot_product/generate_core.sh
 
   patch_vpk_run:
     cmd:
@@ -333,6 +347,7 @@ targets:
         - ams_sim? (pre_patch_vcs_ams_Makefile)
         - tool_xcelium? (pre_build_uartdpi)
         - tool_xcelium? (pre_build_remote_bitbang)
+        - use_hls_example? (generate_hls_dot_product)
       pre_run:
         - remove_uart_log
       post_run:
@@ -344,6 +359,7 @@ targets:
     - REMOVE_OBI_FIFO
     - COMMON_CELLS_ASSERTS_OFF
     - ASSERTS_OFF
+    - use_hls_example ? (USE_HLS_EXAMPLE=true)
     tools:
       modelsim:
         vlog_options:
