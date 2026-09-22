@@ -14,3 +14,4 @@ Check this section to run your design on the FPGA.
    VPK_180
    Petalinux_VPK180
    DEBUG_with_ILA
+   HLS_DotProduct_Example

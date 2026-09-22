@@ -24,13 +24,18 @@
 // layout: AP_CTRL @0x00, a @0x10/0x14, b @0x1c/0x20, size @0x28,
 // result @0x30/0x34). Base address defined in testharness_pkg.sv as
 // DOT_PRODUCT_CTRL_START_ADDRESS = EXT_SLAVE_START_ADDRESS + 0x20000.
+//
+// 'a'/'b' are 64-bit registers in hardware (Vitis HLS derives the m_axi
+// pointer width from the host's native 64-bit pointers), but X-HEEP only
+// has a 32-bit address space. Only the low word (@0x10/@0x1c) is exposed
+// here: the high word resets to 0 and nothing else ever writes it, so it
+// stays 0 without software having to touch it -- the 64-bit-pointer detail
+// is entirely internal to the accelerator, not visible from X-HEEP's side.
 #define DOT_PRODUCT_CTRL_BASE_ADDRESS (EXT_SLAVE_START_ADDRESS + 0x20000)
 
 #define DOT_PRODUCT_AP_CTRL_OFFSET (0x00 / 4)
-#define DOT_PRODUCT_A_LO_OFFSET (0x10 / 4)
-#define DOT_PRODUCT_A_HI_OFFSET (0x14 / 4)
-#define DOT_PRODUCT_B_LO_OFFSET (0x1c / 4)
-#define DOT_PRODUCT_B_HI_OFFSET (0x20 / 4)
+#define DOT_PRODUCT_A_ADDR_OFFSET (0x10 / 4)
+#define DOT_PRODUCT_B_ADDR_OFFSET (0x1c / 4)
 #define DOT_PRODUCT_SIZE_OFFSET (0x28 / 4)
 #define DOT_PRODUCT_RESULT_LO_OFFSET (0x30 / 4)
 #define DOT_PRODUCT_RESULT_HI_OFFSET (0x34 / 4)
@@ -51,10 +56,8 @@ int main(int argc, char *argv[]) {
 
   volatile uint32_t *dot_product = (uint32_t *)DOT_PRODUCT_CTRL_BASE_ADDRESS;
 
-  dot_product[DOT_PRODUCT_A_LO_OFFSET] = (uint32_t)(uintptr_t)&vec_a[0];
-  dot_product[DOT_PRODUCT_A_HI_OFFSET] = 0;
-  dot_product[DOT_PRODUCT_B_LO_OFFSET] = (uint32_t)(uintptr_t)&vec_b[0];
-  dot_product[DOT_PRODUCT_B_HI_OFFSET] = 0;
+  dot_product[DOT_PRODUCT_A_ADDR_OFFSET] = (uint32_t)(uintptr_t)&vec_a[0];
+  dot_product[DOT_PRODUCT_B_ADDR_OFFSET] = (uint32_t)(uintptr_t)&vec_b[0];
   dot_product[DOT_PRODUCT_SIZE_OFFSET] = TEST_DATA_SIZE;
 
   // START
