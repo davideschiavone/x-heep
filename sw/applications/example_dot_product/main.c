@@ -11,12 +11,18 @@
 
 #define TEST_DATA_SIZE 16
 
-#define PRINTF_IN_SIM 1
+/* By default, PRINTs are activated for FPGA and disabled for simulation. */
+#define PRINTF_IN_FPGA  1
+#define PRINTF_IN_SIM   0
+
 #if TARGET_SIM && PRINTF_IN_SIM
-#define PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
+        #define PRINTF(fmt, ...)    printf(fmt, ## __VA_ARGS__)
+#elif PRINTF_IN_FPGA && !TARGET_SIM
+    #define PRINTF(fmt, ...)    printf(fmt, ## __VA_ARGS__)
 #else
-#define PRINTF(...)
+    #define PRINTF(...)
 #endif
+
 
 // Register map (32-bit word offsets) of the HLS-generated 'dot_product'
 // CTRL AXI4-Lite port, from hw/fpga/hls/vitis/dot_product's generated
@@ -64,8 +70,7 @@ int main(int argc, char *argv[]) {
   dot_product[DOT_PRODUCT_AP_CTRL_OFFSET] = DOT_PRODUCT_AP_START;
 
   // UNTIL DONE
-  while ((dot_product[DOT_PRODUCT_AP_CTRL_OFFSET] & DOT_PRODUCT_AP_DONE) == 0)
-    ;
+  while ((dot_product[DOT_PRODUCT_AP_CTRL_OFFSET] & DOT_PRODUCT_AP_DONE) == 0);
 
   int64_t result = (int64_t)dot_product[DOT_PRODUCT_RESULT_LO_OFFSET] |
                     ((int64_t)dot_product[DOT_PRODUCT_RESULT_HI_OFFSET] << 32);
