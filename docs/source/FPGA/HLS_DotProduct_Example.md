@@ -8,6 +8,10 @@ The example lives under `hw/fpga/hls/vitis/dot_product/`: a small streaming dot-
 This whole example is opt-in and gated behind a single FuseSoC flag, `use_hls_example`. Without it, X-HEEP never depends on Vitis HLS being installed -- building and simulating the project works exactly as before. See [Design: opt-in via a FuseSoC flag](#design-opt-in-via-a-fusesoc-flag) below.
 ```
 
+```{note}
+This flow has been tested with `Vivado 2021.1` and `Vitis HLS 2021.1`.
+```
+
 ## What the accelerator does
 
 `dot_product` computes the dot product of two `int32_t` vectors `a` and `b` of a given `size`, accumulating into a 64-bit result. It is written once in C++ (`dot_product.cpp`/`.h`) and Vitis HLS synthesizes it into three kinds of AXI ports:
