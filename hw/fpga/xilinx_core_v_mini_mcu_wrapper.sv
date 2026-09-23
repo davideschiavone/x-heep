@@ -587,10 +587,10 @@ module xilinx_core_v_mini_mcu_wrapper
   // the CPU data master's dedicated external-slave demux output
   // (ext_core_data_req_o/resp_i) below: a plain 1-to-1 tap, no crossbar
   // needed since there is exactly one master on that path.
-  xheep_obi_pkg::xheep_obi_req_t dotprod_ctrl_obi_req;
-  xheep_obi_pkg::xheep_obi_rsp_t dotprod_ctrl_obi_rsp;
-  xheep_obi_pkg::xheep_obi_req_t [1:0] dotprod_gmem_obi_req;
-  xheep_obi_pkg::xheep_obi_rsp_t [1:0] dotprod_gmem_obi_rsp;
+  xheep_obi_req_t dotprod_ctrl_obi_req;
+  xheep_obi_rsp_t dotprod_ctrl_obi_rsp;
+  xheep_obi_req_t [1:0] dotprod_gmem_obi_req;
+  xheep_obi_rsp_t [1:0] dotprod_gmem_obi_rsp;
 `endif
 
   x_heep_system #(
@@ -629,6 +629,22 @@ module xilinx_core_v_mini_mcu_wrapper
       .ext_dma_addr_req_o(ddr_obi_master_req[5]),
       .ext_dma_addr_resp_i(ddr_obi_master_resp[5]),
 `else
+      .ext_xbar_master_req_i('0),
+      .ext_xbar_master_resp_o(),
+      .ext_core_instr_req_o(),
+      .ext_core_instr_resp_i('0),
+      .ext_core_data_req_o(),
+      .ext_core_data_resp_i('0),
+      .ext_debug_master_req_o(),
+      .ext_debug_master_resp_i('0),
+      .ext_dma_read_req_o(),
+      .ext_dma_read_resp_i('0),
+      .ext_dma_write_req_o(),
+      .ext_dma_write_resp_i('0),
+      .ext_dma_addr_req_o(),
+      .ext_dma_addr_resp_i('0),
+`endif
+`else
 `ifdef USE_HLS_EXAMPLE
       // dot_product's gmem_a/gmem_b OBI masters go through the real
       // system crossbar (2 external masters).
@@ -665,22 +681,6 @@ module xilinx_core_v_mini_mcu_wrapper
       .ext_dma_addr_req_o(),
       .ext_dma_addr_resp_i('0),
 `endif
-`endif
-`else
-      .ext_xbar_master_req_i('0),
-      .ext_xbar_master_resp_o(),
-      .ext_core_instr_req_o(),
-      .ext_core_instr_resp_i('0),
-      .ext_core_data_req_o(),
-      .ext_core_data_resp_i('0),
-      .ext_debug_master_req_o(),
-      .ext_debug_master_resp_i('0),
-      .ext_dma_read_req_o(),
-      .ext_dma_read_resp_i('0),
-      .ext_dma_write_req_o(),
-      .ext_dma_write_resp_i('0),
-      .ext_dma_addr_req_o(),
-      .ext_dma_addr_resp_i('0),
 `endif
       .ext_peripheral_slave_req_o(),
       .ext_peripheral_slave_resp_i('0),
@@ -789,7 +789,10 @@ module xilinx_core_v_mini_mcu_wrapper
   // hw/fpga/hls/vitis/dot_product/rtl/dot_product_xheep_wrapper.sv.
   // Only wired up for the plain (non-PS) FPGA boards, pynq-z2 included;
   // see the ext_xbar_master_req_i/ext_core_data_req_o connections above.
-  dot_product_xheep_wrapper dot_product_wrapper_i (
+  dot_product_xheep_wrapper #(
+      .obi_req_t(xheep_obi_req_t),
+      .obi_rsp_t(xheep_obi_rsp_t)
+  ) dot_product_wrapper_i (
       .clk_i (clk_gen),
       .rst_ni(rst_n),
 
