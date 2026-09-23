@@ -21,9 +21,11 @@ lint_off -file "*/hw/fpga/hls/vitis/dot_product/rtl/hls/*"
 // conservative false-positive combinational loop.
 lint_off -rule UNOPTFLAT -file "*/hw/fpga/hls/vitis/dot_product/rtl/hls/dot_product_gmem_a_m_axi.v"
 lint_off -rule UNOPTFLAT -file "*/hw/fpga/hls/vitis/dot_product/rtl/hls/dot_product_gmem_b_m_axi.v"
+lint_off -rule COMBDLY   -file "*/hw/fpga/hls/vitis/dot_product/rtl/hls/dot_product_gmem_a_m_axi.v"
 
 // Pre-existing width-mismatch in xheep_obi_to_axi_bridge.sv's AxiBurstType
 // default (2-bit axi_pkg::BURST_INCR into a 32-bit unsigned parameter).
 // dot_product is the first consumer to pull this bridge into a Verilator
 // build; not this IP's code to fix.
 lint_off -rule WIDTHEXPAND -file "*/hw/ip/xheep_obi_to_axi_bridge/rtl/xheep_obi_to_axi_bridge.sv"
+
