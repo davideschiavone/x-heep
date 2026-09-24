@@ -104,5 +104,26 @@ The pieces above are deliberately generic and reusable:
 
 - `xheep_obi_to_axi_bridge` / `xheep_axi_to_obi_bridge` (`hw/ip/`) work for any AXI4 / AXI4-Lite port shape, not just `dot_product`'s.
 - `hw/fpga/hls/vitis/dot_product/generate_core.sh` is a template for a Vitis HLS &rarr; FuseSoC `.core` generation script: it runs `vitis_hls -f run_hls.tcl` (C-synthesizing `dot_product.cpp`), copies the resulting Verilog into the stable `rtl/hls/` directory, and regenerates `dot_product.core` to list it. This is exactly the script the `generate_hls_dot_product` pre-build hook runs for you -- you only need to touch it directly if you're modifying `dot_product.cpp`/`dot_product.h` and want to re-synthesize without rebuilding the whole simulation/bitstream.
+
+  The script skips re-running Vitis HLS (and doesn't need it installed) if `rtl/hls/` already holds RTL newer than `dot_product.cpp`/`dot_product.h`/`run_hls.tcl`/the script itself -- so repeated `use_hls_example`-flagged builds don't re-synthesize every time. Set `FORCE=1` to regenerate unconditionally.
+
+  To remove the generated artifacts (the Vitis HLS project and `rtl/hls/`) and force the next build to fully re-synthesize from scratch:
+
+  ```sh
+  hw/fpga/hls/vitis/dot_product/generate_core.sh clean
+  ```
+
+  This doesn't need Vitis HLS installed. It intentionally leaves `dot_product.core` untouched: unlike `rtl/hls/` and `dot_product_proj/`, that file is committed to git, because FuseSoC needs it present to resolve `epfl:ip:dot_product` as a dependency *before* any `pre_build` hook runs -- if it didn't exist at all, dependency resolution would fail outright and the hook that regenerates `rtl/hls/` would never get a chance to run.
+
+  `FORCE=1` reaches `generate_core.sh` even though it's invoked indirectly, through the `generate_hls_dot_product` pre-build hook, through FuseSoC, through `make`: GNU Make automatically exports a variable set on its command line into the environment of every recipe it runs, `fusesoc run --build` inherits that environment when it spawns the `pre_build` hook's subprocess, and the hook itself is just `['bash', '.../generate_core.sh']`, which sees `FORCE` like any other environment variable. So it's enough to set it on the `make` invocation, no extra plumbing needed:
+
+  ```sh
+  FORCE=1 make verilator-build FUSESOC_FLAGS="--flag use_hls_example"
+  FORCE=1 make vivado-fpga FPGA_BOARD=pynq-z2 FUSESOC_FLAGS="--flag use_hls_example"
+  ```
+
+  ```{note}
+  `pre_build` hooks -- and therefore `FORCE`/`generate_core.sh` -- only run as part of an actual FuseSoC `--build` (what `verilator-build` and `vivado-fpga` do). A `--setup`-only step, such as `make vivado-fpga-nobuild`, generates the project files but never invokes the hook, so it won't pick up `FORCE=1` or re-synthesize anything.
+  ```
 - `dot_product_proj/` (the Vitis HLS project) and `rtl/hls/` (the generated RTL) are both gitignored, like any other tool-generated file in this project -- they don't need to exist until the `use_hls_example` flag is used.
 - The `use_hls_example` flag mechanism in `core-v-mini-mcu.core` shows the three places (parameter/`` `define ``, dependency, pre-build hook) a new opt-in HLS example needs to be wired into for both simulation and FPGA builds.

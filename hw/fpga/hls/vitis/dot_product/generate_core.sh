@@ -11,11 +11,45 @@
 #   source <vivado_install>/settings64.sh
 #   source <vitis_hls_install>/settings64.sh
 #   ./generate_core.sh
+#
+# Skips re-running Vitis HLS (and therefore doesn't need it installed) if
+# rtl/hls/ already holds RTL newer than every input that could affect it.
+# Pass FORCE=1 to regenerate unconditionally.
+#
+# ./generate_core.sh clean
+#   Removes the generated artifacts: the Vitis HLS project and rtl/hls/.
+#   Does not need vitis_hls installed. Does NOT remove dot_product.core --
+#   that file is committed to git (unlike rtl/hls/ and dot_product_proj/,
+#   which are gitignored) because FuseSoC needs it to resolve
+#   epfl:ip:dot_product as a dependency *before* it runs any pre_build
+#   hook -- if it didn't exist at all, dependency resolution would fail
+#   outright and the hook that (re)generates rtl/hls/ would never run.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SELF="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
 cd "$SCRIPT_DIR"
+
+DST_DIR="rtl/hls"
+CORE_FILE="dot_product.core"
+
+if [ "${1:-}" = "clean" ]; then
+  rm -rf dot_product_proj "$DST_DIR"
+  echo "Removed dot_product_proj/ and $DST_DIR/."
+  echo "$CORE_FILE was left untouched (it's committed to git, not generated)."
+  exit 0
+fi
+
+if [ "${FORCE:-0}" != "1" ] && [ -f "$CORE_FILE" ] && [ -d "$DST_DIR" ] \
+  && [ -n "$(find "$DST_DIR" -maxdepth 1 -name '*.v' -print -quit)" ]; then
+  stale_src=$(find dot_product.cpp dot_product.h run_hls.tcl "$SELF" -newer "$CORE_FILE" 2>/dev/null | head -1)
+  if [ -z "$stale_src" ]; then
+    echo "dot_product RTL in $DST_DIR/ is already up to date (nothing changed since last generation) -- skipping Vitis HLS."
+    echo "Set FORCE=1 to regenerate anyway."
+    exit 0
+  fi
+fi
 
 if ! command -v vitis_hls >/dev/null 2>&1; then
   echo "error: vitis_hls not found in PATH -- source Vivado's and Vitis HLS's settings64.sh first" >&2
