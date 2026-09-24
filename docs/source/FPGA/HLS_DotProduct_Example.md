@@ -31,7 +31,7 @@ This flow has been tested with `Vivado 2021.1` and `Vitis HLS 2021.1`.
 **Why are `a`/`b` only 32 bits from software's side, if HLS ports are 64-bit?**
 Vitis HLS derives the `gmem_a`/`gmem_b` AXI address width from the size of the C++ pointer type in `dot_product.cpp` (`const int32_t *`). Since `vitis_hls` runs as a 64-bit host process, it synthesizes 64-bit `m_axi` address ports (`a`/`b` are each a pair of 32-bit registers in hardware, at `0x10`/`0x14` and `0x1c`/`0x20`) -- this is inherent to how Vitis HLS compiles native pointers, not an X-HEEP design choice. X-HEEP only has a 32-bit address space, so `xheep_axi_to_obi_bridge` truncates the AXI address down to 32 bits before it reaches the OBI bus.
 
-The upper 32-bit half of each pointer register (`0x14`, `0x20`) resets to `0` in the HLS-generated CTRL block and nothing else ever writes it, so it stays `0` without software ever touching it -- the 64-bit-pointer detail is entirely internal to the accelerator and invisible from X-HEEP's/software's point of view. `example_dot_product/main.c` only ever writes the low word.
+The upper 32-bit half of each pointer register (`0x14`, `0x20`) resets to `0` in the HLS-generated CTRL block and nothing else ever writes it, so it stays `0` without software ever touching it -- the 64-bit-pointer detail is entirely internal to the accelerator and invisible from X-HEEP's/software's point of view. `example_dot_product_hls/main.c` only ever writes the low word.
 ```
 
 Since X-HEEP's bus is OBI, not AXI, two small reusable bridges do the protocol conversion (both under `hw/ip/`, independent of `dot_product` and reusable for any future AXI-based accelerator):
@@ -61,11 +61,11 @@ source <vitis_hls-installation-path>/settings64.sh
 
 make mcu-gen
 make verilator-build FUSESOC_FLAGS="--flag use_hls_example"
-make app PROJECT=example_dot_product TARGET=sim
+make app PROJECT=example_dot_product_hls TARGET=sim
 make verilator-run FUSESOC_FLAGS="--flag use_hls_example"
 ```
 
-`example_dot_product` (`sw/applications/example_dot_product/main.c`) writes the two vector addresses and `size` into the `CTRL` registers, pulses `ap_start`, polls `ap_done`, and checks the result against a CPU-computed reference:
+`example_dot_product_hls` (`sw/applications/example_dot_product_hls/main.c`) writes the two vector addresses and `size` into the `CTRL` registers, pulses `ap_start`, polls `ap_done`, and checks the result against a CPU-computed reference:
 
 ```
 Dot Product Accelerator Successful: 0x0000000000000330
