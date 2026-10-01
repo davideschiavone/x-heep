@@ -16,7 +16,7 @@ This whole example is opt-in and gated behind FuseSoC flags: `use_hls_example` p
 ```
 
 ```{note}
-The Vitis flow has been tested with `Vivado 2021.1` and `Vitis HLS 2021.1`. The Bambu flow has been tested with Bambu `2024.10` (in its Docker image, Verilator 4.038 inside the container) and X-HEEP's Verilator 5 system simulation, with the very same firmware as the Vitis flow. The `pynq-z2` bitstream builds with Vivado 2021.1 and meets timing; it has not been run on a board.
+The Vitis flow has been tested with `Vivado 2021.1` and `Vitis HLS 2021.1`. The Bambu flow has been tested with Bambu `2024.10` (in its Docker image, Verilator 4.038 inside the container) and X-HEEP's Verilator 5 system simulation, with the very same firmware as the Vitis flow.
 ```
 
 ## Repository layout
