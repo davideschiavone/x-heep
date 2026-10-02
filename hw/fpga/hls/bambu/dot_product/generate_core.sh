@@ -97,7 +97,7 @@ description: "Bambu HLS-generated streaming dot-product core with its X-HEEP ada
 filesets:
   files_rtl:
     depend:
-    - x-heep:ip:dot_product_bambu_ctrl
+    - x-heep:ip:dot_product_ctrl
     files:
 $HLS_FILES
     - rtl/dot_product_hls_adapter.sv
