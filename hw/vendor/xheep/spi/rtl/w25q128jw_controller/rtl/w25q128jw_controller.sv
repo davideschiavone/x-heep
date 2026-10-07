@@ -286,8 +286,6 @@ module w25q128jw_controller
     memio_addr_d = memio_addr_q;
     memio_state_d = memio_state_q;
     memio_write_offset_d = memio_write_offset_q;
-    memio_data = '0;
-    memio_be = '0;
 
     dma_size_d = dma_size_q;
 
@@ -1487,7 +1485,7 @@ module w25q128jw_controller
 
           MODIFY_MEMIO_REQ: begin
             if (cache_valid) begin
-              spimemio_resp_o.rdata = cache_rdata;
+              spimemio_resp_o.rdata = memio_data;
               spimemio_resp_o.rvalid = 1'b1;
 
               // Clear memio flag and finish transaction
