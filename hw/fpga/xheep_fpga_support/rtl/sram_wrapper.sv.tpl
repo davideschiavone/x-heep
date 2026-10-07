@@ -68,7 +68,7 @@ assign pwrgate_ack_no = pwrgate_ni;
         .douta(rdata_o)
     );
   end
-  % endif 
+  % endif
   else begin : gen_inferred_ram
     // No Xilinx IP is generated for this size (the IPs above only cover the
     // configured RAM bank sizes and the flash cache), e.g. for a memory inside
