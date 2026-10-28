@@ -11,10 +11,10 @@
 
   upstream: {
     url: "https://github.com/pulp-platform/obi.git",
-    rev: "v0.1.7",
+    rev: "0155fc34e900c7c884e081c0a1114a247937ff69",
   },
 
-  // patch_dir: "../patches/pulp_platform_obi",
+  patch_dir: "../patches/pulp_platform_obi",
 
   exclude_from_upstream: [
     ".ci",
@@ -28,15 +28,6 @@
     "Makefile",
     "Readme.md",
     "scripts",
-    "src/apb_to_obi.sv",
-    "src/obi_atop_resolver.sv",
-    "src/obi_cut.sv",
-    "src/obi_demux.sv",
-    "src/obi_err_sbr.sv",
-    "src/obi_intf.sv",
-    "src/obi_rready_converter.sv",
-    "src/obi_sram_shim.sv",
-    "src/obi_xbar.sv",
     "src/test",
     "test",
   ]

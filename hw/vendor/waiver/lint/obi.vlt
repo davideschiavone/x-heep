@@ -8,8 +8,16 @@
 
 `verilator_config
 
-// obi_mux.sv declares two modules, 'obi_mux' (used) and 'obi_mux_intf'
-// (an SV-interface-based wrapper around it that X-HEEP never instantiates
-// or vendors an OBI_BUS interface for) -- a one-file-two-modules vendor
-// layout, not something we can rename without diverging from upstream.
+// Upstream's OBI sources keep a plain module and its SV-interface-based
+// '<name>_intf' wrapper in the same file (obi_mux.sv declares 'obi_mux' and
+// 'obi_mux_intf', and so on), and obi_intf.sv declares the 'OBI_BUS'
+// interface. X-HEEP only instantiates the plain modules, but the ::obi core
+// lists every file, so they all reach Verilator -Wall. A one-file-several-
+// modules vendor layout, not something we can rename without diverging from
+// upstream.
 lint_off -rule DECLFILENAME -file "*/pulp_platform/obi/src/obi_mux.sv" -match "Filename 'obi_mux' does not match MODULE name: 'obi_mux_intf'"
+lint_off -rule DECLFILENAME -file "*/pulp_platform/obi/src/obi_intf.sv" -match "Filename 'obi_intf' does not match IFACE name: 'OBI_BUS'"
+lint_off -rule DECLFILENAME -file "*/pulp_platform/obi/src/obi_atop_resolver.sv" -match "Filename 'obi_atop_resolver' does not match MODULE name: 'obi_atop_resolver_intf'"
+lint_off -rule DECLFILENAME -file "*/pulp_platform/obi/src/obi_demux.sv" -match "Filename 'obi_demux' does not match MODULE name: 'obi_demux_intf'"
+lint_off -rule DECLFILENAME -file "*/pulp_platform/obi/src/obi_err_sbr.sv" -match "Filename 'obi_err_sbr' does not match MODULE name: 'obi_err_sbr_intf'"
+lint_off -rule DECLFILENAME -file "*/pulp_platform/obi/src/obi_xbar.sv" -match "Filename 'obi_xbar' does not match MODULE name: 'obi_xbar_intf'"
