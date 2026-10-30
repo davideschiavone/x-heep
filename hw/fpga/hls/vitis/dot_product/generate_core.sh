@@ -18,8 +18,9 @@
 # Pass FORCE=1 to regenerate unconditionally.
 #
 # ./generate_core.sh clean
-#   Removes the generated artifacts: the Vitis HLS project and rtl/hls/.
-#   Does not need vitis_hls installed. Does NOT remove dot_product_vitis.core --
+#   Removes the generated artifacts: the Vitis HLS project, rtl/hls/ and the
+#   Vitis HLS logs. Does not need vitis_hls in the PATH (`make clean` runs it).
+#   Does NOT remove dot_product_vitis.core --
 #   that file is committed to git (unlike rtl/hls/ and dot_product_proj/,
 #   which are gitignored) because FuseSoC needs it to resolve
 #   epfl:ip:dot_product_vitis as a dependency *before* it runs any pre_build
@@ -37,7 +38,8 @@ CORE_FILE="dot_product_vitis.core"
 
 if [ "${1:-}" = "clean" ]; then
   rm -rf dot_product_proj "$DST_DIR"
-  echo "Removed dot_product_proj/ and $DST_DIR/."
+  rm -f vitis_hls.log hls_run.log
+  echo "Removed dot_product_proj/, $DST_DIR/ and the Vitis HLS logs."
   echo "$CORE_FILE was left untouched (it's committed to git, not generated)."
   exit 0
 fi
@@ -64,7 +66,7 @@ SYN_DIR="dot_product_proj/solution1/syn/verilog"
 DST_DIR="rtl/hls"
 
 if [ ! -d "$SYN_DIR" ]; then
-  echo "error: HLS synthesis did not produce $SYN_DIR -- check hls_run.log" >&2
+  echo "error: HLS synthesis did not produce $SYN_DIR -- check vitis_hls.log" >&2
   exit 1
 fi
 
