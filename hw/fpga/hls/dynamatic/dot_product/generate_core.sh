@@ -19,7 +19,9 @@
 # input that could affect it. Pass FORCE=1 to regenerate unconditionally.
 #
 # ./generate_core.sh clean
-#   Removes the generated artifacts: the Dynamatic work directory and rtl/hls/.
+#   Removes the generated artifacts: the Dynamatic work directory, rtl/hls/ and
+#   the regtool-generated CTRL register file in ../../common (with its cache).
+#   Needs neither Dynamatic nor Docker (`make clean` runs it).
 #   Does NOT remove dot_product_dynamatic.core -- that file is committed to git
 #   (unlike rtl/hls/ and dot_product_proj/, which are gitignored) because
 #   FuseSoC needs it to resolve epfl:ip:dot_product_dynamatic as a dependency
@@ -39,7 +41,10 @@ CORE_FILE="dot_product_dynamatic.core"
 
 if [ "${1:-}" = "clean" ]; then
   rm -rf "$WORK_DIR" "$DST_DIR"
-  echo "Removed $WORK_DIR/ and $DST_DIR/."
+  rm -f ../../common/dot_product/rtl/dot_product_ctrl_reg_top.sv \
+    ../../common/dot_product/rtl/dot_product_ctrl_reg_pkg.sv \
+    ../../common/dot_product/.dot_product_ctrl_reg_gen.cache
+  echo "Removed $WORK_DIR/, $DST_DIR/ and the generated CTRL register file."
   echo "$CORE_FILE was left untouched (it's committed to git, not generated)."
   exit 0
 fi

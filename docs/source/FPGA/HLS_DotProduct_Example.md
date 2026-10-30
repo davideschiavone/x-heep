@@ -315,7 +315,7 @@ The pieces above are deliberately generic and reusable:
 
   The script skips re-running the HLS tool (and doesn't need it installed) if `rtl/hls/` already holds RTL newer than the kernel, the shared header, the run script and the script itself (for Bambu and Dynamatic also the Docker environment) -- so repeated flagged builds don't re-synthesize every time. Set `FORCE=1` to regenerate unconditionally.
 
-  To remove the generated artifacts (the HLS project, `rtl/hls/`, the tool logs and, for Bambu, the regtool-generated CTRL register file) and force the next build to fully re-synthesize from scratch, `make clean` does it along with everything else, or on its own:
+  To remove the generated artifacts (the HLS project, `rtl/hls/`, the tool logs and, for Bambu and Dynamatic, the regtool-generated CTRL register file in `common/dot_product/rtl/`) and force the next build to fully re-synthesize from scratch, `make clean` does it along with everything else, or on its own:
 
   ```sh
   make clean-hls
@@ -329,7 +329,7 @@ The pieces above are deliberately generic and reusable:
   hw/fpga/hls/dynamatic/dot_product/generate_core.sh clean
   ```
 
-  None of these need the HLS tool (Vitis HLS in the `PATH`, or Bambu/Docker). They intentionally leave `dot_product_<tool>.core` untouched: unlike `rtl/hls/` and `dot_product_proj/`, that file is committed to git, because FuseSoC needs it present to resolve `epfl:ip:dot_product_<tool>` as a dependency *before* any `pre_build` hook runs -- if it didn't exist at all, dependency resolution would fail outright and the hook that regenerates `rtl/hls/` would never get a chance to run.
+  None of these need the HLS tool (Vitis HLS in the `PATH`, or Bambu/Dynamatic/Docker). They intentionally leave `dot_product_<tool>.core` untouched: unlike `rtl/hls/` and `dot_product_proj/`, that file is committed to git, because FuseSoC needs it present to resolve `epfl:ip:dot_product_<tool>` as a dependency *before* any `pre_build` hook runs -- if it didn't exist at all, dependency resolution would fail outright and the hook that regenerates `rtl/hls/` would never get a chance to run.
 
   `FORCE=1` reaches `generate_core.sh` even though it's invoked indirectly, through the `generate_hls_dot_product_<tool>` pre-build hook, through FuseSoC, through `make`: GNU Make automatically exports a variable set on its command line into the environment of every recipe it runs, `fusesoc run --build` inherits that environment when it spawns the `pre_build` hook's subprocess, and the hook itself is just `['bash', '.../generate_core.sh']`, which sees `FORCE` like any other environment variable. So it's enough to set it on the `make` invocation, no extra plumbing needed:
 
